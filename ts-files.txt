@@ -1,0 +1,4 @@
+C:\Users\mavin\Desktop\code\IHateJavaScript\src\Graph.ts
+C:\Users\mavin\Desktop\code\IHateJavaScript\src\GraphEditor.ts
+C:\Users\mavin\Desktop\code\IHateJavaScript\src\GraphRenderer.ts
+C:\Users\mavin\Desktop\code\IHateJavaScript\src\main.ts

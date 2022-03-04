@@ -1,0 +1,2 @@
+https://stackoverflow.com/questions/33358761/dynamic-svg-paths-with-only-javascript-jquery
+https://stackoverflow.com/questions/21864989/draw-lines-between-2-elements-in-html-page

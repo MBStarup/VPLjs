@@ -1,7 +1,10 @@
 /// <reference path="GraphEditor.ts" />
 
-let canvas = document.getElementById('canvas') as HTMLCanvasElement;
-canvas.width = document.body.clientWidth; //document.width is obsolete
-canvas.height = document.body.clientHeight; //document.height is obsolete
-let e = new GraphEditor(canvas, new Graph());
-alert("2");
+let container = document.getElementById('container') as HTMLDivElement;
+
+let bg = document.getElementById('bg') as HTMLDivElement;
+bg.style.width = document.body.clientWidth.toString() + "px"
+bg.style.height = document.body.clientHeight.toString() + "px"
+
+let e = new GraphEditor(container, bg, new Graph());
+alert("sdsds");

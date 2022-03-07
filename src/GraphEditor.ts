@@ -2,24 +2,43 @@
 
 class GraphEditor {
     renderer: GraphRenderer;
-    graph: Graph;
+    nodes: Pair<GraphNode, [number, number]>[] = []
 
-
-    constructor(canvas: HTMLCanvasElement, graph: Graph) {
-        this.renderer = new GraphRenderer(canvas);
-        this.graph = graph;
-
-        canvas.addEventListener("mousedown", this.onClick)
+    constructor(container: HTMLDivElement, bg: HTMLDivElement, graph: Graph) {
+        this.renderer = new GraphRenderer(container);
+        bg.addEventListener("click", this.onClick.bind(this)) //Don't know how "bind" works, but it makes it so the event fucntion has the instance of GraphEditor as 'this' instead of somehting else
     }
 
     onClick(event: MouseEvent) {
-        let n = new GraphNode();
-        this.graph.Nodes.push(n);
+        let inP = new GraphPlug();
+        inP.Type = GraphType.Num;
 
-        event.clientX
-    }
+        let outP = new GraphPlug();
+        outP.Type = GraphType.Num;
 
-    loop() {
-        this.renderer.RenderGraph(this.graph);
+        let n = new GraphNode([inP, inP], [outP]);
+        console.log("inputs:");
+        console.log(n.Inputs);
+
+        this.nodes.push(new Pair(n, [event.clientX, event.clientY]));
+        this.renderer.RenderNode(n, [event.clientX, event.clientY]);
     }
 }
+
+
+class Pair<keyType, valueType> {
+    key: keyType;
+    value: valueType;
+
+    constructor(key: keyType, value: valueType) {
+        this.key = key;
+        this.value = value;
+    }
+}
+
+class EditorNode {
+    node: GraphNode
+    pos: [number, number]
+    name: string
+}
+

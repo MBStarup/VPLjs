@@ -7,7 +7,9 @@ class GraphNode {
     Inputs: GraphPlug[];
     Outputs: GraphPlug[];
 
-    void(ins: GraphPlug[], outs: GraphPlug[]) {
+    constructor(ins: GraphPlug[], outs: GraphPlug[]) {
+        this.Inputs = ins;
+        this.Outputs = outs;
     }
 }
 

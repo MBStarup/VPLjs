@@ -45,13 +45,14 @@ var Pair = /** @class */ (function () {
 var GraphEditor = /** @class */ (function () {
     function GraphEditor(container, bg, svgContainer, graph) {
         this.nodes = [];
-        bg.addEventListener("click", this.onClick.bind(this)); //Don't know how "bind" works, but it makes it so the event fucntion has the instance of GraphEditor as 'this' instead of somehting else
+        bg.addEventListener("click", this.spawnNode.bind(this)); //Don't know how "bind" works, but it makes it so the event fucntion has the instance of GraphEditor as 'this' instead of somehting else
         this.container = container;
     }
-    GraphEditor.prototype.onClick = function (event) {
+    GraphEditor.prototype.spawnNode = function (e) {
+        e.preventDefault();
         var n = new GraphNode([new GraphPlug(GraphType.Num), new GraphPlug(GraphType.Text), new GraphPlug(GraphType.Emoji)], [new GraphPlug(GraphType.Num), new GraphPlug(GraphType.Time)]);
-        this.nodes.push(new Pair(n, [event.clientX, event.clientY]));
-        var div = this.RenderNode(n, [event.clientX, event.clientY]);
+        this.nodes.push(new Pair(n, [e.clientX, e.clientY]));
+        var div = this.RenderNode(n, [e.clientX, e.clientY]);
         //div.addEventListener("click", (e) => { div.style.backgroundColor = "#00ffff" });
         //div.addEventListener("drag")
     };
@@ -109,7 +110,7 @@ var GraphEditor = /** @class */ (function () {
         var curve = this.makeSVGElement("path");
         curve.setAttribute("fill", "none");
         curve.setAttribute("stroke", "red");
-        curve.setAttribute("stroke-width", "2");
+        curve.setAttribute("stroke-width", "8");
         document.addEventListener("mousemove", dragCurve);
         document.addEventListener("mouseup", releaseCurve);
         svgContainer.appendChild(curve);
@@ -137,8 +138,8 @@ var GraphEditor = /** @class */ (function () {
         var oldX = e.clientX;
         var oldY = e.clientY;
         node.style.zIndex = "1";
-        node.addEventListener("mouseup", stopDragNode);
-        node.addEventListener("mousemove", dragMove);
+        document.addEventListener("mouseup", stopDragNode);
+        document.addEventListener("mousemove", dragMove);
         function dragMove(e) {
             newX = oldX - e.clientX;
             newY = oldY - e.clientY;
@@ -149,8 +150,8 @@ var GraphEditor = /** @class */ (function () {
             node.style.left = (node.offsetLeft - newX) + "px";
         }
         function stopDragNode(e) {
-            node.removeEventListener("mouseup", stopDragNode);
-            node.removeEventListener("mousemove", dragMove);
+            document.removeEventListener("mouseup", stopDragNode);
+            document.removeEventListener("mousemove", dragMove);
             node.style.zIndex = null;
         }
     };

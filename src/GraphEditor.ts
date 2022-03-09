@@ -6,15 +6,16 @@ class GraphEditor {
     svgContainer: SVGElement;
 
     constructor(container: HTMLDivElement, bg: HTMLDivElement, svgContainer: SVGElement, graph: Graph) {
-        bg.addEventListener("click", this.onClick.bind(this)) //Don't know how "bind" works, but it makes it so the event fucntion has the instance of GraphEditor as 'this' instead of somehting else
+        bg.addEventListener("click", this.spawnNode.bind(this)) //Don't know how "bind" works, but it makes it so the event fucntion has the instance of GraphEditor as 'this' instead of somehting else
         this.container = container;
     }
 
-    onClick(event: MouseEvent) {
+    spawnNode(e: MouseEvent) {
+        e.preventDefault()
         let n = new GraphNode([new GraphPlug(GraphType.Num), new GraphPlug(GraphType.Text), new GraphPlug(GraphType.Emoji)], [new GraphPlug(GraphType.Num), new GraphPlug(GraphType.Time)]);
 
-        this.nodes.push(new Pair(n, [event.clientX, event.clientY]));
-        let div = this.RenderNode(n, [event.clientX, event.clientY])
+        this.nodes.push(new Pair(n, [e.clientX, e.clientY]));
+        let div = this.RenderNode(n, [e.clientX, e.clientY])
         //div.addEventListener("click", (e) => { div.style.backgroundColor = "#00ffff" });
         //div.addEventListener("drag")
     }
@@ -83,7 +84,7 @@ class GraphEditor {
 
         curve.setAttribute("fill", "none")
         curve.setAttribute("stroke", "red")
-        curve.setAttribute("stroke-width", "2")
+        curve.setAttribute("stroke-width", "8")
 
         document.addEventListener("mousemove", dragCurve)
         document.addEventListener("mouseup", releaseCurve)
@@ -122,8 +123,8 @@ class GraphEditor {
 
         node.style.zIndex = "1";
 
-        node.addEventListener("mouseup", stopDragNode)
-        node.addEventListener("mousemove", dragMove)
+        document.addEventListener("mouseup", stopDragNode)
+        document.addEventListener("mousemove", dragMove)
 
         function dragMove(e: MouseEvent) {
             newX = oldX - e.clientX;
@@ -136,8 +137,8 @@ class GraphEditor {
         }
 
         function stopDragNode(e: MouseEvent) {
-            node.removeEventListener("mouseup", stopDragNode)
-            node.removeEventListener("mousemove", dragMove)
+            document.removeEventListener("mouseup", stopDragNode)
+            document.removeEventListener("mousemove", dragMove)
             node.style.zIndex = null;
         }
     }

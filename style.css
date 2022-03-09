@@ -23,6 +23,7 @@
 }
 
 .header {
+    cursor: grab;
     width: 100%;
     font-family: sans-serif;
     font-size: 15px;
@@ -78,23 +79,12 @@
 }
 
 .typeDot {
+    cursor: alias;
     border-radius: 50%;
     pointer-events: all;
     width: 25px;
     height: 25px;
 }
-
-
-svg {
-    border: solid 1px #ff0000;
-    width: 700px;
-    height: 550px;
-}
-
-
-
-
-
 
 .typeDot.num {
     background-color: rgb(149, 26, 187);

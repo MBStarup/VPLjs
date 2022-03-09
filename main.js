@@ -52,7 +52,7 @@ var GraphEditor = /** @class */ (function () {
         var n = new GraphNode([new GraphPlug(GraphType.Num), new GraphPlug(GraphType.Text), new GraphPlug(GraphType.Emoji)], [new GraphPlug(GraphType.Num), new GraphPlug(GraphType.Time)]);
         this.nodes.push(new Pair(n, [event.clientX, event.clientY]));
         var div = this.RenderNode(n, [event.clientX, event.clientY]);
-        div.addEventListener("click", function (e) { div.style.backgroundColor = "#00ffff"; });
+        //div.addEventListener("click", (e) => { div.style.backgroundColor = "#00ffff" });
         //div.addEventListener("drag")
     };
     GraphEditor.prototype.RenderNode = function (n, p) {
@@ -78,7 +78,6 @@ var GraphEditor = /** @class */ (function () {
             var elem = document.createElement("div");
             var text = document.createElement("p");
             elem.classList.add("typeDot", GraphType[input.Type]);
-            elem.setAttribute("style", "background-color:" + getColor(input.Type));
             text.innerHTML = GraphType[input.Type];
             inputDiv.appendChild(elem);
             inputDiv.appendChild(text);
@@ -93,7 +92,6 @@ var GraphEditor = /** @class */ (function () {
             var elem = document.createElement("div");
             var text = document.createElement("p");
             elem.classList.add("typeDot", GraphType[output.Type]);
-            elem.setAttribute("style", "background-color:" + getColor(output.Type));
             text.innerHTML = GraphType[output.Type];
             outputDiv.appendChild(elem);
             outputDiv.appendChild(text);
@@ -127,20 +125,6 @@ var GraphEditor = /** @class */ (function () {
     };
     return GraphEditor;
 }());
-//move to css maybe
-function getColor(nodeType) {
-    var _a;
-    var colors = [];
-    colors[GraphType.Bool] = "#cc0000";
-    colors[GraphType.Category] = "#330000";
-    colors[GraphType.Channel] = "#333300";
-    colors[GraphType.Num] = "#330033";
-    colors[GraphType.Text] = "#3333ff";
-    return (_a = colors[nodeType]) !== null && _a !== void 0 ? _a : "#f030a0";
-}
-function dragMove(arg0, dragMove) {
-    throw new Error("Function not implemented.");
-}
 /// <reference path="GraphEditor.ts" />
 var container = document.getElementById('container');
 container.style.width = document.body.clientWidth.toString() + "px";

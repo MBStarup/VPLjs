@@ -14,7 +14,7 @@ class GraphEditor {
 
         this.nodes.push(new Pair(n, [event.clientX, event.clientY]));
         let div = this.RenderNode(n, [event.clientX, event.clientY])
-        div.addEventListener("click", (e) => { div.style.backgroundColor = "#00ffff" });
+        //div.addEventListener("click", (e) => { div.style.backgroundColor = "#00ffff" });
         //div.addEventListener("drag")
     }
 
@@ -44,7 +44,6 @@ class GraphEditor {
             let elem = document.createElement("div")
             let text = document.createElement("p")
             elem.classList.add("typeDot", GraphType[input.Type])
-            elem.setAttribute("style", "background-color:" + getColor(input.Type))
             text.innerHTML = GraphType[input.Type]
             inputDiv.appendChild(elem)
             inputDiv.appendChild(text)
@@ -60,7 +59,6 @@ class GraphEditor {
             let elem = document.createElement("div")
             let text = document.createElement("p")
             elem.classList.add("typeDot", GraphType[output.Type])
-            elem.setAttribute("style", "background-color:" + getColor(output.Type))
             text.innerHTML = GraphType[output.Type]
             outputDiv.appendChild(elem)
             outputDiv.appendChild(text)
@@ -101,21 +99,4 @@ class GraphEditor {
             node.style.zIndex = null;
         }
     }
-
-}
-
-//move to css maybe
-function getColor(nodeType: number): string {
-    let colors: string[] = []
-    colors[GraphType.Bool] = "#cc0000"
-    colors[GraphType.Category] = "#330000"
-    colors[GraphType.Channel] = "#333300"
-    colors[GraphType.Num] = "#330033"
-    colors[GraphType.Text] = "#3333ff"
-
-    return colors[nodeType] ?? "#f030a0";
-}
-
-function dragMove(arg0: string, dragMove: any) {
-    throw new Error("Function not implemented.");
 }

@@ -43,7 +43,7 @@ var Pair = /** @class */ (function () {
 }());
 /// <reference path="Graph.ts" />
 var GraphEditor = /** @class */ (function () {
-    function GraphEditor(container, bg, graph) {
+    function GraphEditor(container, bg, svgContainer, graph) {
         this.nodes = [];
         bg.addEventListener("click", this.onClick.bind(this)); //Don't know how "bind" works, but it makes it so the event fucntion has the instance of GraphEditor as 'this' instead of somehting else
         this.container = container;
@@ -78,6 +78,7 @@ var GraphEditor = /** @class */ (function () {
             var elem = document.createElement("div");
             var text = document.createElement("p");
             elem.classList.add("typeDot", GraphType[input.Type]);
+            elem.addEventListener("mousedown", function (e) { return _this.handleCurve(e, elem, input); });
             text.innerHTML = GraphType[input.Type];
             inputDiv.appendChild(elem);
             inputDiv.appendChild(text);
@@ -92,6 +93,7 @@ var GraphEditor = /** @class */ (function () {
             var elem = document.createElement("div");
             var text = document.createElement("p");
             elem.classList.add("typeDot", GraphType[output.Type]);
+            elem.addEventListener("mousedown", function (e) { return _this.handleCurve(e, elem, output); });
             text.innerHTML = GraphType[output.Type];
             outputDiv.appendChild(elem);
             outputDiv.appendChild(text);
@@ -100,7 +102,36 @@ var GraphEditor = /** @class */ (function () {
         this.container.appendChild(nodeDiv);
         return nodeDiv;
     };
+    GraphEditor.prototype.handleCurve = function (e, div, plug) {
+        e.preventDefault();
+        var startPosX = e.clientX;
+        var startPosY = e.clientY;
+        var curve = this.makeSVGElement("path");
+        curve.setAttribute("fill", "none");
+        curve.setAttribute("stroke", "red");
+        curve.setAttribute("stroke-width", "2");
+        document.addEventListener("mousemove", dragCurve);
+        document.addEventListener("mouseup", releaseCurve);
+        svgContainer.appendChild(curve);
+        function dragCurve(e) {
+            console.log("Dragging: " + "M " + startPosX + " " + startPosY + " " + e.clientX + " " + e.clientY);
+            curve.setAttribute("d", "M " + startPosX + " " + startPosY + " " + e.clientX + " " + e.clientY);
+        }
+        function releaseCurve(e) {
+            document.removeEventListener("mousemove", dragCurve);
+            document.removeEventListener("mouseup", releaseCurve);
+        }
+    };
+    //http://stackoverflow.com/a/3642265/1869660
+    GraphEditor.prototype.makeSVGElement = function (tag, attrs) {
+        var el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+        for (var k in attrs) {
+            el.setAttribute(k, attrs[k]);
+        }
+        return el;
+    };
     GraphEditor.prototype.dragNode = function (e, node) {
+        e.preventDefault();
         var newX;
         var newY;
         var oldX = e.clientX;
@@ -132,5 +163,8 @@ container.style.height = document.body.clientHeight.toString() + "px";
 var bg = document.getElementById('bg');
 bg.style.width = document.body.clientWidth.toString() + "px";
 bg.style.height = document.body.clientHeight.toString() + "px";
-var e = new GraphEditor(container, bg, new Graph());
+var svgContainer = document.getElementById('svgContainer');
+svgContainer.style.width = document.body.clientWidth.toString() + "px";
+svgContainer.style.height = document.body.clientHeight.toString() + "px";
+var e = new GraphEditor(container, bg, svgContainer, new Graph());
 alert("sdsds");

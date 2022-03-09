@@ -8,5 +8,9 @@ let bg = document.getElementById('bg') as HTMLDivElement;
 bg.style.width = document.body.clientWidth.toString() + "px"
 bg.style.height = document.body.clientHeight.toString() + "px"
 
-let e = new GraphEditor(container, bg, new Graph());
+let svgContainer = document.getElementById('svgContainer') as unknown as SVGElement;
+svgContainer.style.width = document.body.clientWidth.toString() + "px"
+svgContainer.style.height = document.body.clientHeight.toString() + "px"
+
+let e = new GraphEditor(container, bg, svgContainer, new Graph());
 alert("sdsds");

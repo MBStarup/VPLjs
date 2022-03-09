@@ -3,8 +3,9 @@
 class GraphEditor {
     nodes: Pair<GraphNode, [number, number]>[] = []
     container: HTMLDivElement;
+    svgContainer: SVGElement;
 
-    constructor(container: HTMLDivElement, bg: HTMLDivElement, graph: Graph) {
+    constructor(container: HTMLDivElement, bg: HTMLDivElement, svgContainer: SVGElement, graph: Graph) {
         bg.addEventListener("click", this.onClick.bind(this)) //Don't know how "bind" works, but it makes it so the event fucntion has the instance of GraphEditor as 'this' instead of somehting else
         this.container = container;
     }
@@ -44,6 +45,7 @@ class GraphEditor {
             let elem = document.createElement("div")
             let text = document.createElement("p")
             elem.classList.add("typeDot", GraphType[input.Type])
+            elem.addEventListener("mousedown", (e) => this.handleCurve(e, elem, input))
             text.innerHTML = GraphType[input.Type]
             inputDiv.appendChild(elem)
             inputDiv.appendChild(text)
@@ -59,6 +61,7 @@ class GraphEditor {
             let elem = document.createElement("div")
             let text = document.createElement("p")
             elem.classList.add("typeDot", GraphType[output.Type])
+            elem.addEventListener("mousedown", (e) => this.handleCurve(e, elem, output))
             text.innerHTML = GraphType[output.Type]
             outputDiv.appendChild(elem)
             outputDiv.appendChild(text)
@@ -71,7 +74,46 @@ class GraphEditor {
 
     }
 
+    handleCurve(e: MouseEvent, div: HTMLDivElement, plug: GraphPlug) {
+        e.preventDefault()
+        let startPosX = e.clientX;
+        let startPosY = e.clientY;
+
+        let curve = this.makeSVGElement("path")
+
+        curve.setAttribute("fill", "none")
+        curve.setAttribute("stroke", "red")
+        curve.setAttribute("stroke-width", "2")
+
+        document.addEventListener("mousemove", dragCurve)
+        document.addEventListener("mouseup", releaseCurve)
+
+        svgContainer.appendChild(curve)
+
+        function dragCurve(e: MouseEvent) {
+            console.log("Dragging: " + "M " + startPosX + " " + startPosY + " " + e.clientX + " " + e.clientY)
+            curve.setAttribute("d", "M " + startPosX + " " + startPosY + " " + e.clientX + " " + e.clientY)
+        }
+
+        function releaseCurve(e: MouseEvent) {
+            document.removeEventListener("mousemove", dragCurve)
+            document.removeEventListener("mouseup", releaseCurve)
+        }
+
+    }
+
+    //http://stackoverflow.com/a/3642265/1869660
+    makeSVGElement(tag: string, attrs?: string[]): SVGElement {
+        var el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+        for (var k in attrs) {
+            el.setAttribute(k, attrs[k]);
+        }
+        return el;
+    }
+
+
     dragNode(e: MouseEvent, node: HTMLDivElement) { //https://www.w3schools.com/howto/howto_js_draggable.asp
+        e.preventDefault()
 
         let newX;
         let newY;
@@ -93,7 +135,7 @@ class GraphEditor {
             node.style.left = (node.offsetLeft - newX) + "px";
         }
 
-        function stopDragNode(e: MouseEvent,) {
+        function stopDragNode(e: MouseEvent) {
             node.removeEventListener("mouseup", stopDragNode)
             node.removeEventListener("mousemove", dragMove)
             node.style.zIndex = null;

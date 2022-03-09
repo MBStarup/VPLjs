@@ -85,6 +85,11 @@
 }
 
 
+svg {
+    border: solid 1px #ff0000;
+    width: 700px;
+    height: 550px;
+}
 
 
 

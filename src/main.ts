@@ -1,6 +1,8 @@
 /// <reference path="GraphEditor.ts" />
 
 let container = document.getElementById('container') as HTMLDivElement;
+container.style.width = document.body.clientWidth.toString() + "px"
+container.style.height = document.body.clientHeight.toString() + "px"
 
 let bg = document.getElementById('bg') as HTMLDivElement;
 bg.style.width = document.body.clientWidth.toString() + "px"

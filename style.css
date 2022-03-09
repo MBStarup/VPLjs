@@ -1,0 +1,85 @@
+* {
+    margin: 0px;
+}
+
+#bg {
+    background-color: #424e4c;
+}
+
+#container {
+    background-color: #ff0000;
+    pointer-events: none;
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    width: 0px;
+    height: 0px;
+    overflow: hidden;
+}
+
+.node {
+    pointer-events: all;
+    width: 250px;
+    height: 200px;
+    background-color: #5eff00;
+    position: absolute;
+    border: 3px solid #aaaaaa;
+}
+
+.header {
+    width: 100%;
+}
+
+.body {
+    display: flex;
+}
+
+.inputList {
+    width: 50%;
+    float: left;
+}
+
+.outputList {
+    width: 50%;
+}
+
+.input {
+    width: 100%;
+    height: 25px;
+    background-color: rgb(214, 142, 55);
+}
+
+.output {
+    width: 100%;
+    height: 25px;
+    background-color: bisque;
+}
+
+
+.input * {
+    float: left;
+}
+
+.input p {
+    font-family: sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.output * {
+    float: right;
+}
+
+.output p {
+    font-family: sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    top: 50%;
+}
+
+.typeDot {
+    border-radius: 50%;
+    pointer-events: all;
+    width: 25px;
+    height: 25px;
+}

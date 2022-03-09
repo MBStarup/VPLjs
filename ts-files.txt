@@ -1,4 +1,3 @@
 C:\Users\mavin\Desktop\code\VPLjs\src\Graph.ts
 C:\Users\mavin\Desktop\code\VPLjs\src\GraphEditor.ts
-C:\Users\mavin\Desktop\code\VPLjs\src\GraphRenderer.ts
 C:\Users\mavin\Desktop\code\VPLjs\src\main.ts

@@ -11,7 +11,8 @@ var GraphNode = /** @class */ (function () {
     return GraphNode;
 }());
 var GraphPlug = /** @class */ (function () {
-    function GraphPlug() {
+    function GraphPlug(type) {
+        this.Type = type;
     }
     return GraphPlug;
 }());
@@ -33,62 +34,6 @@ var GraphType;
     GraphType[GraphType["Emoji"] = 8] = "Emoji";
     GraphType[GraphType["MessageType"] = 9] = "MessageType";
 })(GraphType || (GraphType = {}));
-/// <reference path="Graph.ts" />
-var GraphRenderer = /** @class */ (function () {
-    function GraphRenderer(container) {
-        this.pos = 1;
-        this.rendered = [];
-        this.container = container;
-    }
-    GraphRenderer.prototype.RenderNode = function (n, p) {
-        var _a, _b;
-        if (this.rendered.indexOf(n) === -1) {
-            var nodeDiv_1 = document.createElement("div");
-            nodeDiv_1.classList.add("node" + this.pos++);
-            nodeDiv_1.setAttribute("style", "pointer-events:all;width:100px;height:100px;background-color:#ff0000;position:absolute;top:" + p[1].toString() + "px;left:" + p[0].toString() + "px");
-            nodeDiv_1.addEventListener("click", function (e) { nodeDiv_1.style.backgroundColor = "#00ff00"; });
-            var inputDiv_1 = document.createElement("div");
-            inputDiv_1.classList.add("input");
-            nodeDiv_1.appendChild(inputDiv_1);
-            (_a = n.Inputs) === null || _a === void 0 ? void 0 : _a.forEach(function (input) {
-                var elem = document.createElement("div");
-                elem.classList.add(GraphType[input.Type]);
-                inputDiv_1.appendChild(elem);
-            });
-            var outputDiv_1 = document.createElement("div");
-            outputDiv_1.classList.add("output");
-            nodeDiv_1.appendChild(outputDiv_1);
-            (_b = n.Outputs) === null || _b === void 0 ? void 0 : _b.forEach(function (output) {
-                var elem = document.createElement("div");
-                elem.classList.add(GraphType[output.Type]);
-                outputDiv_1.appendChild(elem);
-            });
-            this.container.appendChild(nodeDiv_1);
-            this.rendered.push(n);
-        }
-    };
-    return GraphRenderer;
-}());
-/// <reference path="GraphRenderer.ts" />
-var GraphEditor = /** @class */ (function () {
-    function GraphEditor(container, bg, graph) {
-        this.nodes = [];
-        this.renderer = new GraphRenderer(container);
-        bg.addEventListener("click", this.onClick.bind(this)); //Don't know how "bind" works, but it makes it so the event fucntion has the instance of GraphEditor as 'this' instead of somehting else
-    }
-    GraphEditor.prototype.onClick = function (event) {
-        var inP = new GraphPlug();
-        inP.Type = GraphType.Num;
-        var outP = new GraphPlug();
-        outP.Type = GraphType.Num;
-        var n = new GraphNode([inP, inP], [outP]);
-        console.log("inputs:");
-        console.log(n.Inputs);
-        this.nodes.push(new Pair(n, [event.clientX, event.clientY]));
-        this.renderer.RenderNode(n, [event.clientX, event.clientY]);
-    };
-    return GraphEditor;
-}());
 var Pair = /** @class */ (function () {
     function Pair(key, value) {
         this.key = key;
@@ -96,13 +41,110 @@ var Pair = /** @class */ (function () {
     }
     return Pair;
 }());
-var EditorNode = /** @class */ (function () {
-    function EditorNode() {
+/// <reference path="Graph.ts" />
+var GraphEditor = /** @class */ (function () {
+    function GraphEditor(container, bg, graph) {
+        this.nodes = [];
+        bg.addEventListener("click", this.onClick.bind(this)); //Don't know how "bind" works, but it makes it so the event fucntion has the instance of GraphEditor as 'this' instead of somehting else
+        this.container = container;
     }
-    return EditorNode;
+    GraphEditor.prototype.onClick = function (event) {
+        var n = new GraphNode([new GraphPlug(GraphType.Num), new GraphPlug(GraphType.Text), new GraphPlug(GraphType.Emoji)], [new GraphPlug(GraphType.Num), new GraphPlug(GraphType.Time)]);
+        this.nodes.push(new Pair(n, [event.clientX, event.clientY]));
+        var div = this.RenderNode(n, [event.clientX, event.clientY]);
+        div.addEventListener("click", function (e) { div.style.backgroundColor = "#00ffff"; });
+        //div.addEventListener("drag")
+    };
+    GraphEditor.prototype.RenderNode = function (n, p) {
+        var _this = this;
+        var _a, _b;
+        var nodeDiv = document.createElement("div");
+        nodeDiv.classList.add("node");
+        nodeDiv.setAttribute("style", "top: " + p[1].toString() + "px; left: " + p[0].toString() + "px");
+        var headerDiv = document.createElement("div");
+        headerDiv.classList.add("header");
+        headerDiv.innerText = "HEADER";
+        headerDiv.addEventListener("mousedown", function (e) { return _this.dragNode(e, nodeDiv); });
+        var bodyDiv = document.createElement("div");
+        bodyDiv.classList.add("body");
+        nodeDiv.appendChild(headerDiv);
+        nodeDiv.appendChild(bodyDiv);
+        var inputListDiv = document.createElement("div");
+        inputListDiv.classList.add("inputList");
+        bodyDiv.appendChild(inputListDiv);
+        (_a = n.Inputs) === null || _a === void 0 ? void 0 : _a.forEach(function (input) {
+            var inputDiv = document.createElement("div");
+            inputDiv.classList.add("input");
+            var elem = document.createElement("div");
+            var text = document.createElement("p");
+            elem.classList.add("typeDot", GraphType[input.Type]);
+            elem.setAttribute("style", "background-color:" + getColor(input.Type));
+            text.innerHTML = GraphType[input.Type];
+            inputDiv.appendChild(elem);
+            inputDiv.appendChild(text);
+            inputListDiv.appendChild(inputDiv);
+        });
+        var outputListDiv = document.createElement("div");
+        outputListDiv.classList.add("outputList");
+        bodyDiv.appendChild(outputListDiv);
+        (_b = n.Outputs) === null || _b === void 0 ? void 0 : _b.forEach(function (output) {
+            var outputDiv = document.createElement("div");
+            outputDiv.classList.add("output");
+            var elem = document.createElement("div");
+            var text = document.createElement("p");
+            elem.classList.add("typeDot", GraphType[output.Type]);
+            elem.setAttribute("style", "background-color:" + getColor(output.Type));
+            text.innerHTML = GraphType[output.Type];
+            outputDiv.appendChild(elem);
+            outputDiv.appendChild(text);
+            outputListDiv.appendChild(outputDiv);
+        });
+        this.container.appendChild(nodeDiv);
+        return nodeDiv;
+    };
+    GraphEditor.prototype.dragNode = function (e, node) {
+        var newX;
+        var newY;
+        var oldX = e.clientX;
+        var oldY = e.clientY;
+        node.style.zIndex = "1";
+        node.addEventListener("mouseup", stopDragNode);
+        node.addEventListener("mousemove", dragMove);
+        function dragMove(e) {
+            newX = oldX - e.clientX;
+            newY = oldY - e.clientY;
+            oldX = e.clientX;
+            oldY = e.clientY;
+            // set the element's new position:
+            node.style.top = (node.offsetTop - newY) + "px";
+            node.style.left = (node.offsetLeft - newX) + "px";
+        }
+        function stopDragNode(e) {
+            node.removeEventListener("mouseup", stopDragNode);
+            node.removeEventListener("mousemove", dragMove);
+            node.style.zIndex = null;
+        }
+    };
+    return GraphEditor;
 }());
+//move to css maybe
+function getColor(nodeType) {
+    var _a;
+    var colors = [];
+    colors[GraphType.Bool] = "#cc0000";
+    colors[GraphType.Category] = "#330000";
+    colors[GraphType.Channel] = "#333300";
+    colors[GraphType.Num] = "#330033";
+    colors[GraphType.Text] = "#3333ff";
+    return (_a = colors[nodeType]) !== null && _a !== void 0 ? _a : "#f030a0";
+}
+function dragMove(arg0, dragMove) {
+    throw new Error("Function not implemented.");
+}
 /// <reference path="GraphEditor.ts" />
 var container = document.getElementById('container');
+container.style.width = document.body.clientWidth.toString() + "px";
+container.style.height = document.body.clientHeight.toString() + "px";
 var bg = document.getElementById('bg');
 bg.style.width = document.body.clientWidth.toString() + "px";
 bg.style.height = document.body.clientHeight.toString() + "px";

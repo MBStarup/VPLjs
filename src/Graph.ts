@@ -17,6 +17,10 @@ class GraphPlug {
     Type: GraphType;
     HasIn: boolean;
     HasField: boolean;
+
+    constructor(type: GraphType) {
+        this.Type = type
+    }
 }
 
 class GraphRelation {
@@ -35,4 +39,14 @@ enum GraphType {
     Category,
     Emoji,
     MessageType
+}
+
+class Pair<keyType, valueType> {
+    key: keyType;
+    value: valueType;
+
+    constructor(key: keyType, value: valueType) {
+        this.key = key;
+        this.value = value;
+    }
 }

@@ -8,6 +8,7 @@ class GraphEditor {
     constructor(container: HTMLDivElement, bg: HTMLDivElement, svgContainer: SVGElement, graph: Graph) {
         bg.addEventListener("click", this.spawnNode.bind(this)) //Don't know how "bind" works, but it makes it so the event fucntion has the instance of GraphEditor as 'this' instead of somehting else
         this.container = container;
+        this.svgContainer = svgContainer;
     }
 
     spawnNode(e: MouseEvent) {
@@ -78,74 +79,95 @@ class GraphEditor {
     handleCurve(e: MouseEvent, div: HTMLDivElement, plug: GraphPlug) {
         e.preventDefault()
         let start = new point(e.clientX, e.clientY)
+        let end = new point(e.clientX, e.clientY)
 
-        let curveSVG = this.makeSVGElement("path", { "fill": "none", "stroke": "red", "stroke-width": 3 })
-
-
-        let scaler = 1.5;
-        let center = new point(((start.x + e.clientX) / 2), ((start.y + e.clientY) / 2))
-        let inverseSlope = (start.x - e.clientX) / (e.clientY - start.y)
-
-        let a1 = ((start.y + center.y) / 2) - (((start.x + center.x) / 2) * inverseSlope)
-        let p1 = new point(((start.x + center.x) / 2) + scaler, ((start.y + center.y) / 2) + inverseSlope * scaler + a1)
-        let curve = new svgCurve(curveSVG, start, new point(e.clientX, e.clientY), p1)
+        let curveSVG = makeSVGElement("path", { "fill": "none", "stroke": "red", "stroke-width": 3 })
 
 
+        //let scaler = 1.5;
+        let center = point.add(start, end).multiply(1 / 2)
+        //let inverseSlope = (start.x - e.clientX) / (e.clientY - start.y)
 
-        let dot = this.makeSVGElement("circle", { "fill": "blue", "r": 5, "pointer-events": "all" })
-
-        document.addEventListener("mousemove", dragCurve)
-        document.addEventListener("mouseup", releaseCurve)
-
-        dot.addEventListener("mousedown", handleDot)
-        function handleDot(e: MouseEvent) {
+        //let a1 = ((start.y + center.y) / 2) - (((start.x + center.x) / 2) * inverseSlope)
+        //let p1 = new point(((start.x + center.x) / 2) + scaler, ((start.y + center.y) / 2) + inverseSlope * scaler + a1)
+        let p1 = new point(center.x, start.y)
+        let p2 = new point(center.x, end.y)
 
 
-            document.addEventListener("mousemove", dragDot)
-            document.addEventListener("mouseup", releaseDot)
+        let curve = new svgCurve(curveSVG, start, end, p1, p2)
+        let centerDot = makeSVGElement("circle", { "fill": "red", "r": 10, "pointer-events": "all" })
 
-            function dragDot(e: MouseEvent) {
-                curve.setC1(new point(e.clientX, e.clientY))
-                dot.setAttribute("cx", curve.c1.x.toString())
-                dot.setAttribute("cy", curve.c1.y.toString())
-            }
+        let dragCurve = (e: MouseEvent) => {
 
-            function releaseDot(e: MouseEvent) {
-                document.removeEventListener("mousemove", dragDot)
-                document.removeEventListener("mouseup", releaseDot)
-            }
-        }
+            end = new point(e.clientX, e.clientY)
+            center = point.add(start, end).multiply(1 / 2)
 
-        svgContainer.appendChild(curveSVG)
-        svgContainer.appendChild(dot)
 
-        function dragCurve(e: MouseEvent) {
-            let center = new point(((start.x + e.clientX) / 2), ((start.y + e.clientY) / 2))
-            let p1 = center
+            p1 = new point(center.x, start.y)
+            p2 = new point(center.x, end.y)
 
             curve.setC1(p1)
-            curve.setEnd(new point(e.clientX, e.clientY))
+            curve.setC2(p2)
+            curve.setEnd(end)
 
-            dot.setAttribute("cx", curve.c1.x.toString())
-            dot.setAttribute("cy", curve.c1.y.toString())
+            centerDot.setAttribute("cx", curve.getCenter().x.toString())
+            centerDot.setAttribute("cy", curve.getCenter().y.toString())
         }
 
-        function releaseCurve(e: MouseEvent) {
+
+
+        let releaseCurve = (e: MouseEvent) => {
             document.removeEventListener("mousemove", dragCurve)
             document.removeEventListener("mouseup", releaseCurve)
+
+            let dots: { setter: (p: point) => void, getter: () => point, element: SVGElement }[] = [
+                { setter: curve.setStart.bind(curve), getter: curve.getStart.bind(curve), element: makeSVGElement("circle", { "fill": "orange", "r": 5, "pointer-events": "all" }) },
+                { setter: curve.setC1.bind(curve), getter: curve.getC1.bind(curve), element: makeSVGElement("circle", { "fill": "yellow", "r": 5, "pointer-events": "all" }) },
+                { setter: curve.setC2.bind(curve), getter: curve.getC2.bind(curve), element: makeSVGElement("circle", { "fill": "blue", "r": 5, "pointer-events": "all" }) },
+                { setter: curve.setEnd.bind(curve), getter: curve.getEnd.bind(curve), element: makeSVGElement("circle", { "fill": "purple", "r": 5, "pointer-events": "all" }) }]
+
+
+
+            dots.forEach(dot => handleDotWrapper(dot))
+
+            function handleDotWrapper(dot: { setter: (p: point) => void, getter: () => point, element: SVGElement }) {
+                dot.element.addEventListener("mousedown", handleDot)
+
+                dot.element.setAttribute("cx", dot.getter().x.toString())
+                dot.element.setAttribute("cy", dot.getter().y.toString())
+
+                function handleDot(_: MouseEvent) {
+                    document.addEventListener("mousemove", dragDot)
+                    document.addEventListener("mouseup", releaseDot)
+
+                    function dragDot(e: MouseEvent) {
+                        dot.setter(new point(e.clientX, e.clientY))
+                        dot.element.setAttribute("cx", dot.getter().x.toString())
+                        dot.element.setAttribute("cy", dot.getter().y.toString())
+
+                        centerDot.setAttribute("cx", curve.getCenter().x.toString())
+                        centerDot.setAttribute("cy", curve.getCenter().y.toString())
+                    }
+
+                    function releaseDot(_: MouseEvent) {
+                        document.removeEventListener("mousemove", dragDot)
+                        document.removeEventListener("mouseup", releaseDot)
+                    }
+                }
+            }
+
+            dots.forEach(dot => this.svgContainer.appendChild(dot.element))
         }
 
-    }
+        this.svgContainer.appendChild(curveSVG)
+        this.svgContainer.appendChild(centerDot)
 
-    //http://stackoverflow.com/a/3642265/1869660
-    makeSVGElement(tag: string, attrs?: object): SVGElement {
-        var el = document.createElementNS('http://www.w3.org/2000/svg', tag);
-        for (var k in attrs) {
-            el.setAttribute(k, attrs[k]);
-        }
-        return el;
-    }
+        document.addEventListener("mousemove", dragCurve)
 
+        releaseCurve = releaseCurve.bind(this)
+        document.addEventListener("mouseup", releaseCurve)
+
+    }
 
     dragNode(e: MouseEvent, node: HTMLDivElement) { //https://www.w3schools.com/howto/howto_js_draggable.asp
         e.preventDefault()
@@ -179,18 +201,27 @@ class GraphEditor {
 }
 
 class svgCurve {
-    start: point
-    end: point
-    c1: point
-    element: SVGElement
+    private start: point
+    private center: point
+    private end: point
+    private c1: point
+    private c2: point
+    private element: SVGElement
 
-    constructor(element: SVGElement, start: point, end: point, c1: point) {
+    constructor(element: SVGElement, start: point, end: point, c1?: point, c2?: point) {
         this.element = element
         this.start = start
         this.end = end
-        this.c1 = c1
+
+        this.center = point.add(this.start, this.end).multiply(1 / 2)
+
+        this.c1 = c1 ?? new point(this.center.x, this.start.y)
+        this.c2 = c2 ?? new point(this.center.x, this.end.y)
+
         this.recalc()
     }
+
+
 
     setStart(p: point) {
         this.start = p
@@ -202,22 +233,50 @@ class svgCurve {
         this.recalc()
     }
 
+    setC2(p: point) {
+        this.c2 = p
+        this.recalc()
+    }
+
     setEnd(p: point) {
         this.end = p
         this.recalc()
     }
 
+    getStart(): point {
+        return (this.start)
+    }
+
+    getC1(): point { return this.c1 }
+
+    getCenter(): point { return this.center }
+
+    getC2(): point { return this.c2 }
+
+    getEnd(): point { return this.end }
+
     recalc() {
+        this.center = point.add(this.start, this.end).multiply(1 / 2)
+
         this.element.setAttribute("d", this.getSVGData())
     }
 
     getSVGData(): string {
-        let center = new point(((this.start.x + this.end.x) / 2), ((this.start.y + this.end.y) / 2))
 
         return (" M " + this.start.x + " " + this.start.y + //start point
-            " Q " + this.c1.x + " " + this.c1.y + //startpoint curve towards
-            " , " + center.x + " " + center.y + //center
-            " T " + this.end.x + " " + this.end.y)
+            " C " + this.c1.x + " " + this.c1.y + //startpoint curve towards
+            " , " + this.c1.x + " " + this.c1.y + //center
+            " , " + this.center.x + " " + this.center.y + //center
+            " C " + + " " + this.c2.x + " " + this.c2.y +
+            " , " + + " " + this.c2.x + " " + this.c2.y +
+            " , " + this.end.x + " " + this.end.y)
+
+
+
+        // return (" M " + this.start.x + " " + this.start.y + //start point
+        //     " Q " + this.c1.x + " " + this.c1.y + //startpoint curve towards
+        //     " , " + center.x + " " + center.y + //center
+        //     " T " + this.end.x + " " + this.end.y)
     }
 }
 
@@ -229,6 +288,8 @@ class point {
         this.x = x ?? 0
         this.y = y ?? 0
     }
+
+    static zero: point = new point(0, 0)
 
     add(p: point): point {
         this.x += p.x
@@ -248,15 +309,33 @@ class point {
         return this
     }
 
-    static add(p1: point, p2: point): point {
-        return new point(p1.x + p2.x, p1.y + p2.y)
-    }
+    copy() { return new point(this.x, this.y) }
 
-    static subtract(p1: point, p2: point): point {
-        return new point(p1.x - p2.x, p1.y - p2.y)
-    }
+    static copy(p: point) { return new point(p.x, p.y) }
 
-    static multiply(p1: point, n: number): point {
-        return new point(p1.x * n, p1.y * n)
+    static add(p1: point, p2: point): point { return new point(p1.x + p2.x, p1.y + p2.y) }
+
+    static subtract(p1: point, p2: point): point { return new point(p1.x - p2.x, p1.y - p2.y) }
+
+    static multiply(p1: point, n: number): point { return new point(p1.x * n, p1.y * n) }
+
+    static center(p1: point, p2: point): point { return new point(((p1.x + p2.x) / 2), ((p1.y + p2.y) / 2)) }
+
+
+
+    static dotP(p1: point, p2: point): number { return p1.x * p2.x + p1.y * p2.y }
+
+    static unit(p: point) {
+        let s = Math.sqrt(p.x * p.x + p.y * p.y)
+        return new point(p.x / s, p.y / s)
     }
+}
+
+//http://stackoverflow.com/a/3642265/1869660
+function makeSVGElement(tag: string, attrs?: object): SVGElement {
+    var el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for (var k in attrs) {
+        el.setAttribute(k, attrs[k]);
+    }
+    return el;
 }

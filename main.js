@@ -47,6 +47,7 @@ var GraphEditor = /** @class */ (function () {
         this.nodes = [];
         bg.addEventListener("click", this.spawnNode.bind(this)); //Don't know how "bind" works, but it makes it so the event fucntion has the instance of GraphEditor as 'this' instead of somehting else
         this.container = container;
+        this.svgContainer = svgContainer;
     }
     GraphEditor.prototype.spawnNode = function (e) {
         e.preventDefault();
@@ -104,54 +105,68 @@ var GraphEditor = /** @class */ (function () {
         return nodeDiv;
     };
     GraphEditor.prototype.handleCurve = function (e, div, plug) {
+        var _this = this;
         e.preventDefault();
         var start = new point(e.clientX, e.clientY);
-        var curveSVG = this.makeSVGElement("path", { "fill": "none", "stroke": "red", "stroke-width": 3 });
-        var scaler = 1.5;
-        var center = new point(((start.x + e.clientX) / 2), ((start.y + e.clientY) / 2));
-        var inverseSlope = (start.x - e.clientX) / (e.clientY - start.y);
-        var a1 = ((start.y + center.y) / 2) - (((start.x + center.x) / 2) * inverseSlope);
-        var p1 = new point(((start.x + center.x) / 2) + scaler, ((start.y + center.y) / 2) + inverseSlope * scaler + a1);
-        var curve = new svgCurve(curveSVG, start, new point(e.clientX, e.clientY), p1);
-        var dot = this.makeSVGElement("circle", { "fill": "blue", "r": 5, "pointer-events": "all" });
-        document.addEventListener("mousemove", dragCurve);
-        document.addEventListener("mouseup", releaseCurve);
-        dot.addEventListener("mousedown", handleDot);
-        function handleDot(e) {
-            document.addEventListener("mousemove", dragDot);
-            document.addEventListener("mouseup", releaseDot);
-            function dragDot(e) {
-                curve.setC1(new point(e.clientX, e.clientY));
-                dot.setAttribute("cx", curve.c1.x.toString());
-                dot.setAttribute("cy", curve.c1.y.toString());
-            }
-            function releaseDot(e) {
-                document.removeEventListener("mousemove", dragDot);
-                document.removeEventListener("mouseup", releaseDot);
-            }
-        }
-        svgContainer.appendChild(curveSVG);
-        svgContainer.appendChild(dot);
-        function dragCurve(e) {
-            var center = new point(((start.x + e.clientX) / 2), ((start.y + e.clientY) / 2));
-            var p1 = center;
+        var end = new point(e.clientX, e.clientY);
+        var curveSVG = makeSVGElement("path", { "fill": "none", "stroke": "red", "stroke-width": 3 });
+        //let scaler = 1.5;
+        var center = point.add(start, end).multiply(1 / 2);
+        //let inverseSlope = (start.x - e.clientX) / (e.clientY - start.y)
+        //let a1 = ((start.y + center.y) / 2) - (((start.x + center.x) / 2) * inverseSlope)
+        //let p1 = new point(((start.x + center.x) / 2) + scaler, ((start.y + center.y) / 2) + inverseSlope * scaler + a1)
+        var p1 = new point(center.x, start.y);
+        var p2 = new point(center.x, end.y);
+        var curve = new svgCurve(curveSVG, start, end, p1, p2);
+        var centerDot = makeSVGElement("circle", { "fill": "red", "r": 10, "pointer-events": "all" });
+        var dragCurve = function (e) {
+            end = new point(e.clientX, e.clientY);
+            center = point.add(start, end).multiply(1 / 2);
+            p1 = new point(center.x, start.y);
+            p2 = new point(center.x, end.y);
             curve.setC1(p1);
-            curve.setEnd(new point(e.clientX, e.clientY));
-            dot.setAttribute("cx", curve.c1.x.toString());
-            dot.setAttribute("cy", curve.c1.y.toString());
-        }
-        function releaseCurve(e) {
+            curve.setC2(p2);
+            curve.setEnd(end);
+            centerDot.setAttribute("cx", curve.getCenter().x.toString());
+            centerDot.setAttribute("cy", curve.getCenter().y.toString());
+        };
+        var releaseCurve = function (e) {
             document.removeEventListener("mousemove", dragCurve);
             document.removeEventListener("mouseup", releaseCurve);
-        }
-    };
-    //http://stackoverflow.com/a/3642265/1869660
-    GraphEditor.prototype.makeSVGElement = function (tag, attrs) {
-        var el = document.createElementNS('http://www.w3.org/2000/svg', tag);
-        for (var k in attrs) {
-            el.setAttribute(k, attrs[k]);
-        }
-        return el;
+            var dots = [
+                { setter: curve.setStart.bind(curve), getter: curve.getStart.bind(curve), element: makeSVGElement("circle", { "fill": "orange", "r": 5, "pointer-events": "all" }) },
+                { setter: curve.setC1.bind(curve), getter: curve.getC1.bind(curve), element: makeSVGElement("circle", { "fill": "yellow", "r": 5, "pointer-events": "all" }) },
+                { setter: curve.setC2.bind(curve), getter: curve.getC2.bind(curve), element: makeSVGElement("circle", { "fill": "blue", "r": 5, "pointer-events": "all" }) },
+                { setter: curve.setEnd.bind(curve), getter: curve.getEnd.bind(curve), element: makeSVGElement("circle", { "fill": "purple", "r": 5, "pointer-events": "all" }) }
+            ];
+            dots.forEach(function (dot) { return handleDotWrapper(dot); });
+            function handleDotWrapper(dot) {
+                dot.element.addEventListener("mousedown", handleDot);
+                dot.element.setAttribute("cx", dot.getter().x.toString());
+                dot.element.setAttribute("cy", dot.getter().y.toString());
+                function handleDot(_) {
+                    document.addEventListener("mousemove", dragDot);
+                    document.addEventListener("mouseup", releaseDot);
+                    function dragDot(e) {
+                        dot.setter(new point(e.clientX, e.clientY));
+                        dot.element.setAttribute("cx", dot.getter().x.toString());
+                        dot.element.setAttribute("cy", dot.getter().y.toString());
+                        centerDot.setAttribute("cx", curve.getCenter().x.toString());
+                        centerDot.setAttribute("cy", curve.getCenter().y.toString());
+                    }
+                    function releaseDot(_) {
+                        document.removeEventListener("mousemove", dragDot);
+                        document.removeEventListener("mouseup", releaseDot);
+                    }
+                }
+            }
+            dots.forEach(function (dot) { return _this.svgContainer.appendChild(dot.element); });
+        };
+        this.svgContainer.appendChild(curveSVG);
+        this.svgContainer.appendChild(centerDot);
+        document.addEventListener("mousemove", dragCurve);
+        releaseCurve = releaseCurve.bind(this);
+        document.addEventListener("mouseup", releaseCurve);
     };
     GraphEditor.prototype.dragNode = function (e, node) {
         e.preventDefault();
@@ -180,11 +195,13 @@ var GraphEditor = /** @class */ (function () {
     return GraphEditor;
 }());
 var svgCurve = /** @class */ (function () {
-    function svgCurve(element, start, end, c1) {
+    function svgCurve(element, start, end, c1, c2) {
         this.element = element;
         this.start = start;
         this.end = end;
-        this.c1 = c1;
+        this.center = point.add(this.start, this.end).multiply(1 / 2);
+        this.c1 = c1 !== null && c1 !== void 0 ? c1 : new point(this.center.x, this.start.y);
+        this.c2 = c2 !== null && c2 !== void 0 ? c2 : new point(this.center.x, this.end.y);
         this.recalc();
     }
     svgCurve.prototype.setStart = function (p) {
@@ -195,19 +212,37 @@ var svgCurve = /** @class */ (function () {
         this.c1 = p;
         this.recalc();
     };
+    svgCurve.prototype.setC2 = function (p) {
+        this.c2 = p;
+        this.recalc();
+    };
     svgCurve.prototype.setEnd = function (p) {
         this.end = p;
         this.recalc();
     };
+    svgCurve.prototype.getStart = function () {
+        return (this.start);
+    };
+    svgCurve.prototype.getC1 = function () { return this.c1; };
+    svgCurve.prototype.getCenter = function () { return this.center; };
+    svgCurve.prototype.getC2 = function () { return this.c2; };
+    svgCurve.prototype.getEnd = function () { return this.end; };
     svgCurve.prototype.recalc = function () {
+        this.center = point.add(this.start, this.end).multiply(1 / 2);
         this.element.setAttribute("d", this.getSVGData());
     };
     svgCurve.prototype.getSVGData = function () {
-        var center = new point(((this.start.x + this.end.x) / 2), ((this.start.y + this.end.y) / 2));
         return (" M " + this.start.x + " " + this.start.y + //start point
-            " Q " + this.c1.x + " " + this.c1.y + //startpoint curve towards
-            " , " + center.x + " " + center.y + //center
-            " T " + this.end.x + " " + this.end.y);
+            " C " + this.c1.x + " " + this.c1.y + //startpoint curve towards
+            " , " + this.c1.x + " " + this.c1.y + //center
+            " , " + this.center.x + " " + this.center.y + //center
+            " C " + +" " + this.c2.x + " " + this.c2.y +
+            " , " + +" " + this.c2.x + " " + this.c2.y +
+            " , " + this.end.x + " " + this.end.y);
+        // return (" M " + this.start.x + " " + this.start.y + //start point
+        //     " Q " + this.c1.x + " " + this.c1.y + //startpoint curve towards
+        //     " , " + center.x + " " + center.y + //center
+        //     " T " + this.end.x + " " + this.end.y)
     };
     return svgCurve;
 }());
@@ -231,17 +266,28 @@ var point = /** @class */ (function () {
         this.y *= n;
         return this;
     };
-    point.add = function (p1, p2) {
-        return new point(p1.x + p2.x, p1.y + p2.y);
+    point.prototype.copy = function () { return new point(this.x, this.y); };
+    point.copy = function (p) { return new point(p.x, p.y); };
+    point.add = function (p1, p2) { return new point(p1.x + p2.x, p1.y + p2.y); };
+    point.subtract = function (p1, p2) { return new point(p1.x - p2.x, p1.y - p2.y); };
+    point.multiply = function (p1, n) { return new point(p1.x * n, p1.y * n); };
+    point.center = function (p1, p2) { return new point(((p1.x + p2.x) / 2), ((p1.y + p2.y) / 2)); };
+    point.dotP = function (p1, p2) { return p1.x * p2.x + p1.y * p2.y; };
+    point.unit = function (p) {
+        var s = Math.sqrt(p.x * p.x + p.y * p.y);
+        return new point(p.x / s, p.y / s);
     };
-    point.subtract = function (p1, p2) {
-        return new point(p1.x - p2.x, p1.y - p2.y);
-    };
-    point.multiply = function (p1, n) {
-        return new point(p1.x * n, p1.y * n);
-    };
+    point.zero = new point(0, 0);
     return point;
 }());
+//http://stackoverflow.com/a/3642265/1869660
+function makeSVGElement(tag, attrs) {
+    var el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for (var k in attrs) {
+        el.setAttribute(k, attrs[k]);
+    }
+    return el;
+}
 /// <reference path="GraphEditor.ts" />
 var container = document.getElementById('container');
 container.style.width = document.body.clientWidth.toString() + "px";
@@ -253,4 +299,3 @@ var svgContainer = document.getElementById('svgContainer');
 svgContainer.style.width = document.body.clientWidth.toString() + "px";
 svgContainer.style.height = document.body.clientHeight.toString() + "px";
 var e = new GraphEditor(container, bg, svgContainer, new Graph());
-alert("sdsds");

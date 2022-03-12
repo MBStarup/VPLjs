@@ -13,4 +13,3 @@ svgContainer.style.width = document.body.clientWidth.toString() + "px"
 svgContainer.style.height = document.body.clientHeight.toString() + "px"
 
 let e = new GraphEditor(container, bg, svgContainer, new Graph());
-alert("sdsds");

@@ -228,7 +228,25 @@ var svgCurve = /** @class */ (function () {
     svgCurve.prototype.getC2 = function () { return this.c2; };
     svgCurve.prototype.getEnd = function () { return this.end; };
     svgCurve.prototype.recalc = function () {
-        this.center = point.add(this.start, this.end).multiply(1 / 2);
+        var d = [
+            { diagonals: [[this.start, this.end], [this.c1, this.c2]], dotP: 0 },
+            { diagonals: [[this.start, this.c1], [this.end, this.c2]], dotP: 0 },
+            { diagonals: [[this.start, this.c2], [this.end, this.c1]], dotP: 0 }
+        ]
+            .map(function (a) { a.dotP = Math.abs(point.dotP(point.unit(point.subtract(a.diagonals[0][0], a.diagonals[0][1])), point.unit(point.subtract(a.diagonals[1][0], a.diagonals[1][1])))); return a; })
+            .reduce(function (a, b) { return a.dotP < b.dotP ? a : b; }).diagonals;
+        var a0 = (d[0][0].y - d[0][1].y) / (d[0][0].x - d[0][1].x);
+        var a1 = (d[1][0].y - d[1][1].y) / (d[1][0].x - d[1][1].x);
+        var b0 = d[0][0].y - a0 * d[0][0].x;
+        var b1 = d[1][0].y - a1 * d[1][0].x;
+        var x = (b0 - b1) / (a1 - a0);
+        var y = a0 * x + b0;
+        if (x != x || y != y) { //couldn't use isNaN for some reason
+            this.center = point.add(this.start, this.end).multiply(1 / 2);
+        }
+        else {
+            this.center = new point(x, y);
+        }
         this.element.setAttribute("d", this.getSVGData());
     };
     svgCurve.prototype.getSVGData = function () {

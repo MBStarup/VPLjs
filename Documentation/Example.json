@@ -14,30 +14,24 @@
             ],
             "outputs": [
                 {
-                    "name": "wire",
-                    "type": "action"
-                },
-                {
                     "name": "channel",
                     "type": "channel"
                 },
                 {
                     "name": "user",
                     "type": "user"
+                },
+                {
+                    "name": "next",
+                    "type": "action"
                 }
             ]
         },
         {
             "id": 123,
             "name": "UserData",
-            "type": "Node",
+            "type": "DataNode",
             "inputs": [
-                {
-                    "name": "wire",
-                    "type": "action",
-                    "isComingFromOtherBox?": true,
-                    "value": null
-                },
                 {
                     "name": "user",
                     "type": "user",
@@ -46,10 +40,6 @@
                 }
             ],
             "outputs": [
-                {
-                    "name": "wire",
-                    "type": "action"
-                },
                 {
                     "name": "age",
                     "type": "number"
@@ -67,14 +57,8 @@
         {
             "id": 124,
             "name": "GreaterThan",
-            "type": "Node",
+            "type": "ActionNode",
             "inputs": [
-                {
-                    "name": "wire",
-                    "type": "action",
-                    "isComingFromOtherBox?": true,
-                    "value": null
-                },
                 {
                     "name": "a",
                     "type": "number",
@@ -90,11 +74,11 @@
             ],
             "outputs": [
                 {
-                    "name": true,
+                    "name": "nextIfTrue",
                     "type": "action"
                 },
                 {
-                    "name": false,
+                    "name": "nextIfTrue",
                     "type": "action"
                 }
             ]
@@ -102,14 +86,8 @@
         {
             "id": 1513,
             "name": "Text",
-            "type": "Node",
+            "type": "DataNode",
             "inputs": [
-                {
-                    "name": "wire",
-                    "type": "action",
-                    "isComingFromOtherBox?": true,
-                    "value": null
-                },
                 {
                     "name": "inputText",
                     "type": "text",
@@ -119,10 +97,6 @@
             ],
             "outputs": [
                 {
-                    "name": "wire",
-                    "type": "action"
-                },
-                {
                     "name": "outputText",
                     "type": "text"
                 }
@@ -131,14 +105,8 @@
         {
             "id": 121,
             "name": "SendMessage",
-            "type": "Action",
+            "type": "ActionNode",
             "inputs": [
-                {
-                    "name": "wire",
-                    "type": "action",
-                    "isComingFromOtherBox?": true,
-                    "value": null
-                },
                 {
                     "name": "channel",
                     "type": "channel",
@@ -165,24 +133,20 @@
             "in": "121, channel"
         },
         {
-            "out": "0, wire",
-            "in": "123, wire"
+            "out": "0, next",
+            "in": "124"
         },
         {
             "out": "123, age",
             "in": "124, a"
         },
         {
-            "out": "123, wire",
-            "in": "124, wire"
+            "out": "124, nextIfTrue",
+            "in": "121"
         },
         {
-            "out": "124, true",
-            "in": "121, wire"
-        },
-        {
-            "out": "1513, outText",
-            "in": "121, text"
+            "out": "1513, outputText",
+            "in": "121, inputText"
         }
     ]
 }

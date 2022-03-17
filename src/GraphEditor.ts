@@ -95,7 +95,7 @@ class GraphEditor {
 
 
         let curve = new svgCurve(curveSVG, start, end, p1, p2)
-        let centerDot = makeSVGElement("circle", { "fill": "red", "r": 10, "pointer-events": "all" })
+        let centerDot = makeSVGElement("circle", { "fill": "red", "r": 3, "pointer-events": "all" })
 
         let dragCurve = (e: MouseEvent) => {
 
@@ -256,14 +256,7 @@ class svgCurve {
     getEnd(): point { return this.end }
 
     recalc() {
-        let d = [
-            { diagonals: [[this.start, this.end], [this.c1, this.c2]], dotP: 0 },
-            { diagonals: [[this.start, this.c1], [this.end, this.c2]], dotP: 0 },
-            { diagonals: [[this.start, this.c2], [this.end, this.c1]], dotP: 0 }]
-            .map(a => { a.dotP = Math.abs(point.dotP(point.unit(point.subtract(a.diagonals[0][0], a.diagonals[0][1])), point.unit(point.subtract(a.diagonals[1][0], a.diagonals[1][1])))); return a })
-            .reduce((a, b) => a.dotP < b.dotP ? a : b).diagonals
-
-        //TODO: find better way to figure out / limit which diagonals we should use
+        let d = [[this.start, this.end], [this.c1, this.c2]]
 
         let a0 = (d[0][0].y - d[0][1].y) / (d[0][0].x - d[0][1].x)
         let a1 = (d[1][0].y - d[1][1].y) / (d[1][0].x - d[1][1].x)

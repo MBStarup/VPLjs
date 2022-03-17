@@ -118,7 +118,7 @@ var GraphEditor = /** @class */ (function () {
         var p1 = new point(center.x, start.y);
         var p2 = new point(center.x, end.y);
         var curve = new svgCurve(curveSVG, start, end, p1, p2);
-        var centerDot = makeSVGElement("circle", { "fill": "red", "r": 10, "pointer-events": "all" });
+        var centerDot = makeSVGElement("circle", { "fill": "red", "r": 3, "pointer-events": "all" });
         var dragCurve = function (e) {
             end = new point(e.clientX, e.clientY);
             center = point.add(start, end).multiply(1 / 2);
@@ -228,13 +228,7 @@ var svgCurve = /** @class */ (function () {
     svgCurve.prototype.getC2 = function () { return this.c2; };
     svgCurve.prototype.getEnd = function () { return this.end; };
     svgCurve.prototype.recalc = function () {
-        var d = [
-            { diagonals: [[this.start, this.end], [this.c1, this.c2]], dotP: 0 },
-            { diagonals: [[this.start, this.c1], [this.end, this.c2]], dotP: 0 },
-            { diagonals: [[this.start, this.c2], [this.end, this.c1]], dotP: 0 }
-        ]
-            .map(function (a) { a.dotP = Math.abs(point.dotP(point.unit(point.subtract(a.diagonals[0][0], a.diagonals[0][1])), point.unit(point.subtract(a.diagonals[1][0], a.diagonals[1][1])))); return a; })
-            .reduce(function (a, b) { return a.dotP < b.dotP ? a : b; }).diagonals;
+        var d = [[this.start, this.end], [this.c1, this.c2]];
         var a0 = (d[0][0].y - d[0][1].y) / (d[0][0].x - d[0][1].x);
         var a1 = (d[1][0].y - d[1][1].y) / (d[1][0].x - d[1][1].x);
         var b0 = d[0][0].y - a0 * d[0][0].x;

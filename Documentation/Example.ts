@@ -1,6 +1,6 @@
 node_OnSlashCommand({
     trigger: "levelup",
-    action: (data: slashCommandData) => {
+    next: (data: slashCommandData) => {
         node_GreaterThan(
             {
                 a: node_UserInfo({ user: data["user"] })["age"], b: 5,

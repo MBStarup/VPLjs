@@ -1,9 +1,9 @@
 node_OnSlashCommand({
     trigger: "levelup",
-    action: (data: slashCommandData) => {
+    next: (data: slashCommandData) => {
         node_GreaterThan(
             {
-                a: node_UserInfo({ user: data.user })["age"], b: 5,
+                a: node_UserInfo({ user: data["user"] })["age"], b: 5,
                 nextIfTrue: () => { node_SendMessage({ text: node_Text({ inputText: "You just leveled up" })["outputText"], channel: data["channel"] }) },
                 nextIfFalse: () => { }
             })

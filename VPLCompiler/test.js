@@ -1,0 +1,1 @@
+node_OnSlashCommand({trigger:'levelup',veryCoolNum:node_Number({inputNumber:5}).outputNumber})

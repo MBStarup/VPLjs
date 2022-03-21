@@ -1,0 +1,68 @@
+{
+    "nodes": [
+        {
+            "id": 0,
+            "name": "OnSlashCommand",
+            "type": "Event",
+            "inputs": [
+                {
+                    "name": "trigger",
+                    "type": "text",
+                    "isComingFromOtherBox": false,
+                    "value": "levelup"
+                },
+                {
+                    "name": "veryCoolNum",
+                    "type": "number",
+                    "isComingFromOtherBox": true,
+                    "value": null
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "channel",
+                    "type": "channel"
+                },
+                {
+                    "name": "user",
+                    "type": "user"
+                },
+                {
+                    "name": "next",
+                    "type": "action"
+                }
+            ]
+        },
+        {
+            "id": 3,
+            "name": "Number",
+            "type": "DataNode",
+            "inputs": [
+                {
+                    "name": "inputNumber",
+                    "type": "number",
+                    "isComingFromOtherBox": false,
+                    "value": 5
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "outputNumber",
+                    "type": "number"
+                }
+            ]
+        }
+    ],
+    "connections": [
+        {
+            "out": {
+                "node": 3,
+                "plug": "outputNumber"
+            },
+            "in": {
+                "node": 0,
+                "plug": "veryCoolNum"
+            }
+        }
+    ]
+}

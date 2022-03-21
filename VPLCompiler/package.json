@@ -1,8 +1,5 @@
 {
   "type": "module",
   "name": "vplcompiler",
-  "main": "vplc.js",
-  "engines": {
-    "node": ">=17.0.0"
-  }
+  "main": "vplc.js"
 }

@@ -1,7 +1,7 @@
 import graph from './json/smallExample.json' assert {type: "json"}
 import fs from 'fs'
 
-fs.writeFile('./test.js', recFillParams(graph, graph.nodes[0]), 'utf8', err => {
+fs.writeFile('./result/test.js', recFillParams(graph, graph.nodes[0]), 'utf8', err => {
     if (err) console.log(err)
     else {
         console.log('success')

@@ -4,20 +4,26 @@
             "id": 0,
             "name": "OnSlashCommand",
             "type": "Event",
-            "inputs": [
-                {
-                    "name": "trigger",
-                    "type": "text",
-                    "isComingFromOtherBox": false,
-                    "value": "levelup"
-                },
-                {
-                    "name": "veryCoolNum",
-                    "type": "number",
-                    "isComingFromOtherBox": true,
-                    "value": null
-                }
-            ],
+            "inputs": {
+                "data": [
+                    {
+                        "name": "trigger",
+                        "type": "text",
+                        "valueIsPath": false,
+                        "value": "levelup"
+                    },
+                    {
+                        "name": "veryCoolNum",
+                        "type": "number",
+                        "valueIsPath": true,
+                        "value": {
+                            "node": 3,
+                            "plug": "outputNumber"
+                        }
+                    }
+                ],
+                "actions": []
+            },
             "outputs": [
                 {
                     "name": "channel",
@@ -37,32 +43,23 @@
             "id": 3,
             "name": "Number",
             "type": "DataNode",
-            "inputs": [
-                {
-                    "name": "inputNumber",
-                    "type": "number",
-                    "isComingFromOtherBox": false,
-                    "value": 5
-                }
-            ],
+            "inputs": {
+                "data": [
+                    {
+                        "name": "inputNumber",
+                        "type": "number",
+                        "isComingFromOtherBox": false,
+                        "value": 5
+                    }
+                ],
+                "actions": []
+            },
             "outputs": [
                 {
                     "name": "outputNumber",
                     "type": "number"
                 }
             ]
-        }
-    ],
-    "connections": [
-        {
-            "out": {
-                "node": 3,
-                "plug": "outputNumber"
-            },
-            "in": {
-                "node": 0,
-                "plug": "veryCoolNum"
-            }
         }
     ]
 }

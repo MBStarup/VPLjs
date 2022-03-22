@@ -1,0 +1,162 @@
+{
+    "nodes": [
+        {
+            "id": 0,
+            "name": "OnSlashCommand",
+            "type": "Event",
+            "inputs": {
+                "data": [
+                    {
+                        "name": "trigger",
+                        "type": "text",
+                        "valueIsPath": false,
+                        "value": "levelup"
+                    },
+                    {
+                        "name": "veryCoolNum",
+                        "type": "number",
+                        "valueIsPath": true,
+                        "value": {
+                            "node": 3,
+                            "plug": "outputNumber"
+                        }
+                    }
+                ],
+                "actions": [
+                    {
+                        "name": "next",
+                        "type": "action",
+                        "valueIsPath": true,
+                        "value": {
+                            "node": 32
+                        }
+                    }
+                ]
+            },
+            "outputs": [
+                {
+                    "name": "channel",
+                    "type": "channel"
+                },
+                {
+                    "name": "user",
+                    "type": "user"
+                }
+            ]
+        },
+        {
+            "id": 3,
+            "name": "Number",
+            "type": "DataNode",
+            "inputs": {
+                "data": [
+                    {
+                        "name": "inputNumber",
+                        "type": "number",
+                        "valueIsPath": false,
+                        "value": 5
+                    }
+                ],
+                "actions": []
+            },
+            "outputs": [
+                {
+                    "name": "outputNumber",
+                    "type": "number"
+                }
+            ]
+        },
+        {
+            "id": 124,
+            "name": "GreaterThan",
+            "type": "DataNode",
+            "inputs": {
+                "data": [
+                    {
+                        "name": "a",
+                        "type": "number",
+                        "valueIsPath": true,
+                        "value": {
+                            "node": 3,
+                            "plug": "outputNumber"
+                        }
+                    },
+                    {
+                        "name": "b",
+                        "type": "number",
+                        "valueIsPath": false,
+                        "value": 3
+                    }
+                ],
+                "actions": []
+            },
+            "outputs": [
+                {
+                    "name": "result",
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "id": 32,
+            "name": "IfElse",
+            "type": "ActionNode",
+            "inputs": {
+                "data": [
+                    {
+                        "name": "expression",
+                        "type": "bool",
+                        "valueIsPath": true,
+                        "value": {
+                            "node": 124,
+                            "plug": "result"
+                        }
+                    }
+                ],
+                "actions": [
+                    {
+                        "name": "if",
+                        "type": "action",
+                        "valueIsPath": true,
+                        "value": {
+                            "node": 121
+                        }
+                    },
+                    {
+                        "name": "else",
+                        "type": "action",
+                        "valueIsPath": false,
+                        "value": null
+                    }
+                ]
+            },
+            "outputs": []
+        },
+        {
+            "id": 121,
+            "name": "SendMessage",
+            "type": "ActionNode",
+            "inputs": {
+                "data": [
+                    {
+                        "name": "channel",
+                        "type": "channel",
+                        "valueIsPath": true,
+                        "value": {
+                            "node": 0,
+                            "plug": "channel"
+                        }
+                    },
+                    {
+                        "name": "inputText",
+                        "type": "text",
+                        "valueIsPath": false,
+                        "value": "yay!"
+                    }
+                ],
+                "actions": []
+            },
+            "outputs": []
+        }
+    ]
+}

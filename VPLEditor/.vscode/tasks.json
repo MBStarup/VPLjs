@@ -16,7 +16,7 @@
                 "command": ".vscode\\comp.bat"
             },
             "linux": {
-                "command": "echo 'TODO: Fix this :)'"
+                "command": "tsc ${workplaceFolder}/src/*.ts -outFile main.js"
             }
         }
     ]

@@ -117,13 +117,13 @@ var GraphEditor = /** @class */ (function () {
         //let p1 = new point(((start.x + center.x) / 2) + scaler, ((start.y + center.y) / 2) + inverseSlope * scaler + a1)
         var p1 = new point(center.x, start.y);
         var p2 = new point(center.x, end.y);
-        var curve = new svgCurve(curveSVG, start, end, p1, p2);
+        var curve = new svgCurve(curveSVG, start, end);
         var centerDot = makeSVGElement("circle", { "fill": "red", "r": 3, "pointer-events": "all" });
         var dragCurve = function (e) {
             end = new point(e.clientX, e.clientY);
             center = point.add(start, end).multiply(1 / 2);
-            p1 = new point(center.x, start.y);
-            p2 = new point(center.x, end.y);
+            p1 = new point((start.x + center.x) / 2, start.y);
+            p2 = new point((end.x + center.x) / 2, end.y);
             curve.setC1(p1);
             curve.setC2(p2);
             curve.setEnd(end);
@@ -139,6 +139,12 @@ var GraphEditor = /** @class */ (function () {
                 { setter: curve.setC2.bind(curve), getter: curve.getC2.bind(curve), element: makeSVGElement("circle", { "fill": "blue", "r": 5, "pointer-events": "all" }) },
                 { setter: curve.setEnd.bind(curve), getter: curve.getEnd.bind(curve), element: makeSVGElement("circle", { "fill": "purple", "r": 5, "pointer-events": "all" }) }
             ];
+            curve.addEvent("updateshit", function (curve) {
+                dots.forEach(function (dot) {
+                    dot.element.setAttribute("cx", dot.getter().x.toString());
+                    dot.element.setAttribute("cy", dot.getter().y.toString());
+                });
+            });
             dots.forEach(function (dot) { return handleDotWrapper(dot); });
             function handleDotWrapper(dot) {
                 dot.element.addEventListener("mousedown", handleDot);
@@ -195,29 +201,78 @@ var GraphEditor = /** @class */ (function () {
     return GraphEditor;
 }());
 var svgCurve = /** @class */ (function () {
-    function svgCurve(element, start, end, c1, c2) {
+    function svgCurve(element, start, end) {
+        this.events = new Array();
         this.element = element;
         this.start = start;
         this.end = end;
         this.center = point.add(this.start, this.end).multiply(1 / 2);
-        this.c1 = c1 !== null && c1 !== void 0 ? c1 : new point(this.center.x, this.start.y);
-        this.c2 = c2 !== null && c2 !== void 0 ? c2 : new point(this.center.x, this.end.y);
+        this.c1 = new point((this.start.x + this.center.x) / 2, this.start.y);
+        this.c2 = new point((this.end.x + this.center.x) / 2, this.end.y);
         this.recalc();
     }
     svgCurve.prototype.setStart = function (p) {
+        var oldStart = this.start;
         this.start = p;
+        if (this.start.y != this.end.y) {
+            this.c1.x = (((this.c1.x - oldStart.x) / (this.end.x - oldStart.x)) * (this.end.x - this.start.x) + this.start.x);
+            this.c1.y = (((this.c1.y - oldStart.y) / (this.end.y - oldStart.y)) * (this.end.y - this.start.y) + this.start.y);
+            this.c2.x = (((this.c2.x - oldStart.x) / (this.end.x - oldStart.x)) * (this.end.x - this.start.x) + this.start.x);
+            this.c2.y = (((this.c2.y - oldStart.y) / (this.end.y - oldStart.y)) * (this.end.y - this.start.y) + this.start.y);
+        }
+        if (this.start.y < this.end.y && this.start.x < this.end.x) {
+            this.c1.y = Math.min(this.c1.y, this.start.y);
+            this.c2.y = Math.max(this.c2.y, this.end.y);
+        }
+        else {
+            this.c1.y = Math.max(this.c1.y, this.start.y);
+            this.c2.y = Math.min(this.c2.y, this.end.y);
+        }
+        this.c1.x = Math.max(this.c1.x, this.start.x);
+        this.c2.x = Math.min(this.c2.x, this.end.x);
         this.recalc();
     };
     svgCurve.prototype.setC1 = function (p) {
         this.c1 = p;
+        this.c1.x = Math.max(this.c1.x, this.start.x);
+        if (this.start.y < this.end.y && this.start.x < this.end.x) {
+            this.c1.y = Math.min(this.c1.y, this.start.y);
+            this.c2.y = Math.max(this.c2.y, this.end.y);
+        }
+        else {
+            this.c1.y = Math.max(this.c1.y, this.start.y);
+            this.c2.y = Math.min(this.c2.y, this.end.y);
+        }
         this.recalc();
     };
     svgCurve.prototype.setC2 = function (p) {
         this.c2 = p;
+        this.c2.x = Math.min(this.c2.x, this.end.x);
+        if (this.start.y < this.end.y && this.start.x < this.end.x) {
+            this.c1.y = Math.min(this.c1.y, this.start.y);
+            this.c2.y = Math.max(this.c2.y, this.end.y);
+        }
+        else {
+            this.c1.y = Math.max(this.c1.y, this.start.y);
+            this.c2.y = Math.min(this.c2.y, this.end.y);
+        }
         this.recalc();
     };
     svgCurve.prototype.setEnd = function (p) {
+        var oldEnd = this.end;
         this.end = p;
+        this.c1.x = (((this.c1.x - this.start.x) / (oldEnd.x - this.start.x)) * (this.end.x - this.start.x) + this.start.x);
+        this.c1.y = (((this.c1.y - this.start.y) / (oldEnd.x - this.start.y)) * (this.end.y - this.start.y) + this.start.y);
+        this.c2.x = (((this.c2.x - this.start.x) / (oldEnd.x - this.start.x)) * (this.end.x - this.start.x) + this.start.x);
+        this.c2.y = (((this.c2.y - this.start.y) / (oldEnd.x - this.start.y)) * (this.end.y - this.start.y) + this.start.y);
+        if (this.start.y < this.end.y && this.start.x < this.end.x) {
+            this.c1.y = Math.min(this.c1.y, this.start.y);
+            this.c2.y = Math.max(this.c2.y, this.end.y);
+        }
+        else {
+            this.c1.y = Math.max(this.c1.y, this.start.y);
+            this.c2.y = Math.min(this.c2.y, this.end.y);
+        }
         this.recalc();
     };
     svgCurve.prototype.getStart = function () {
@@ -227,7 +282,7 @@ var svgCurve = /** @class */ (function () {
     svgCurve.prototype.getCenter = function () { return this.center; };
     svgCurve.prototype.getC2 = function () { return this.c2; };
     svgCurve.prototype.getEnd = function () { return this.end; };
-    svgCurve.prototype.recalc = function () {
+    svgCurve.prototype.calcCenter = function () {
         var d = [[this.start, this.end], [this.c1, this.c2]];
         var a0 = (d[0][0].y - d[0][1].y) / (d[0][0].x - d[0][1].x);
         var a1 = (d[1][0].y - d[1][1].y) / (d[1][0].x - d[1][1].x);
@@ -236,11 +291,15 @@ var svgCurve = /** @class */ (function () {
         var x = (b0 - b1) / (a1 - a0);
         var y = a0 * x + b0;
         if (x != x || y != y) { //couldn't use isNaN for some reason
-            this.center = point.add(this.start, this.end).multiply(1 / 2);
+            return point.add(this.start, this.end).multiply(1 / 2);
         }
         else {
-            this.center = new point(x, y);
+            return new point(x, y);
         }
+    };
+    svgCurve.prototype.recalc = function () {
+        this.onUpdate(this);
+        this.center = this.calcCenter();
         this.element.setAttribute("d", this.getSVGData());
     };
     svgCurve.prototype.getSVGData = function () {
@@ -255,6 +314,15 @@ var svgCurve = /** @class */ (function () {
         //     " Q " + this.c1.x + " " + this.c1.y + //startpoint curve towards
         //     " , " + center.x + " " + center.y + //center
         //     " T " + this.end.x + " " + this.end.y)
+    };
+    svgCurve.prototype.onUpdate = function (curve) {
+        var _this = this;
+        this.events.forEach(function (event) {
+            event.callback(_this);
+        });
+    };
+    svgCurve.prototype.addEvent = function (id, callback) {
+        this.events.push({ id: id, callback: callback });
     };
     return svgCurve;
 }());

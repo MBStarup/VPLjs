@@ -17,55 +17,54 @@ class GraphEditor {
 
         this.nodes.push(new Pair(n, [e.clientX, e.clientY]));
         let div = this.RenderNode(n, [e.clientX, e.clientY])
-        //div.addEventListener("click", (e) => { div.style.backgroundColor = "#00ffff" });
-        //div.addEventListener("drag")
     }
 
-    RenderNode(n: GraphNode, p: [x: number, y: number]): HTMLDivElement {
-        let nodeDiv = document.createElement("div")
-        nodeDiv.classList.add("node")
-        nodeDiv.setAttribute("style", "top: " + p[1].toString() + "px; left: " + p[0].toString() + "px")
+    RenderNode(n: GraphNode, p: [x: number, y: number]): HTMLDivElement { //TODO: Name bad, fix pls
+        let nodeDiv = document.createElement("div") //Make the outer div
+        nodeDiv.classList.add("node") //Set the class for the css
+        nodeDiv.setAttribute("style", "top: " + p[1].toString() + "px; left: " + p[0].toString() + "px") //Set the position to the mouse click
 
 
-        let headerDiv = document.createElement("div")
-        headerDiv.classList.add("header")
-        headerDiv.innerText = "HEADER";
-        headerDiv.addEventListener("mousedown", (e) => this.dragNode(e, nodeDiv))
-        let bodyDiv = document.createElement("div")
-        bodyDiv.classList.add("body")
+        let headerDiv = document.createElement("div") //Make the header of the node (Where the name is written)
+        headerDiv.classList.add("header") //Set class for css
+        headerDiv.innerText = "NODENAME"; //Set the text in the header //TODOOO: make this a property of the node 
+        headerDiv.addEventListener("mousedown", (e) => this.dragNode(e, nodeDiv)) //Make it draggable
+        nodeDiv.appendChild(headerDiv) //Add the header to the outer div
 
-        nodeDiv.appendChild(headerDiv)
-        nodeDiv.appendChild(bodyDiv)
+        let bodyDiv = document.createElement("div") // make the body of the node (Where the inputs and outputs go)
+        bodyDiv.classList.add("body") //Set class for css
+        nodeDiv.appendChild(bodyDiv) //Add the body to the outer div
 
 
-        let inputListDiv = document.createElement("div")
-        inputListDiv.classList.add("inputList")
-        bodyDiv.appendChild(inputListDiv)
-        n.Inputs?.forEach(input => {
+
+        let inputListDiv = document.createElement("div") //Create the container for the inputs
+        inputListDiv.classList.add("inputList") //Set class for css
+        n.Inputs?.forEach(input => { //For each input, add a html element to the inputs container
             let inputDiv = document.createElement("div")
-            inputDiv.classList.add("input")
-            let elem = document.createElement("div")
-            let text = document.createElement("p")
-            elem.classList.add("typeDot", GraphType[input.Type])
-            elem.addEventListener("mousedown", (e) => this.handleCurve(e, elem, input))
-            text.innerHTML = GraphType[input.Type]
-            inputDiv.appendChild(elem)
+            inputDiv.classList.add("input") //Set class for css
+            let dot = document.createElement("div") //Make a div for the dot
+            let text = document.createElement("p") //Make a paragraph for the name of the input
+            dot.classList.add("typeDot", GraphType[input.Type])  //Set classes for css
+            dot.addEventListener("mousedown", (e) => this.handleCurve(e, dot, input)) //Make clicking the dot do curve things //TODOOO: make this also keep track of relations
+            text.innerHTML = GraphType[input.Type] //Set the text of the paragrah to be the type of the input (enum -> text)
+            inputDiv.appendChild(dot)
             inputDiv.appendChild(text)
             inputListDiv.appendChild(inputDiv)
         });
+        bodyDiv.appendChild(inputListDiv) //Add the inputs to the body
 
         let outputListDiv = document.createElement("div")
-        outputListDiv.classList.add("outputList")
+        outputListDiv.classList.add("outputList") //Set class for css
         bodyDiv.appendChild(outputListDiv)
         n.Outputs?.forEach(output => {
             let outputDiv = document.createElement("div")
             outputDiv.classList.add("output")
-            let elem = document.createElement("div")
+            let dot = document.createElement("div")
             let text = document.createElement("p")
-            elem.classList.add("typeDot", GraphType[output.Type])
-            elem.addEventListener("mousedown", (e) => this.handleCurve(e, elem, output))
+            dot.classList.add("typeDot", GraphType[output.Type])  //Set classes for css
+            dot.addEventListener("mousedown", (e) => this.handleCurve(e, dot, output))
             text.innerHTML = GraphType[output.Type]
-            outputDiv.appendChild(elem)
+            outputDiv.appendChild(dot)
             outputDiv.appendChild(text)
             outputListDiv.appendChild(outputDiv)
         });
@@ -94,7 +93,7 @@ class GraphEditor {
         let p2 = new point(center.x, end.y)
 
 
-        let curve = new svgCurve(curveSVG, start, end, p1, p2)
+        let curve = new svgCurve(curveSVG, start, end)
         let centerDot = makeSVGElement("circle", { "fill": "red", "r": 3, "pointer-events": "all" })
 
         let dragCurve = (e: MouseEvent) => {
@@ -103,8 +102,8 @@ class GraphEditor {
             center = point.add(start, end).multiply(1 / 2)
 
 
-            p1 = new point(center.x, start.y)
-            p2 = new point(center.x, end.y)
+            p1 = new point((start.x + center.x) / 2, start.y)
+            p2 = new point((end.x + center.x) / 2, end.y)
 
             curve.setC1(p1)
             curve.setC2(p2)
@@ -126,6 +125,13 @@ class GraphEditor {
                 { setter: curve.setC2.bind(curve), getter: curve.getC2.bind(curve), element: makeSVGElement("circle", { "fill": "blue", "r": 5, "pointer-events": "all" }) },
                 { setter: curve.setEnd.bind(curve), getter: curve.getEnd.bind(curve), element: makeSVGElement("circle", { "fill": "purple", "r": 5, "pointer-events": "all" }) }]
 
+            curve.addEvent("updateshit", (curve) => {
+                dots.forEach(dot => {
+                    dot.element.setAttribute("cx", dot.getter().x.toString())
+                    dot.element.setAttribute("cy", dot.getter().y.toString())
+                })
+
+            })
 
 
             dots.forEach(dot => handleDotWrapper(dot))
@@ -207,16 +213,17 @@ class svgCurve {
     private c1: point
     private c2: point
     private element: SVGElement
+    private events: { id: string, callback: ((curve: svgCurve) => void) }[] = new Array()
 
-    constructor(element: SVGElement, start: point, end: point, c1?: point, c2?: point) {
+    constructor(element: SVGElement, start: point, end: point) {
         this.element = element
         this.start = start
         this.end = end
 
         this.center = point.add(this.start, this.end).multiply(1 / 2)
 
-        this.c1 = c1 ?? new point(this.center.x, this.start.y)
-        this.c2 = c2 ?? new point(this.center.x, this.end.y)
+        this.c1 = new point((this.start.x + this.center.x) / 2, this.start.y)
+        this.c2 = new point((this.end.x + this.center.x) / 2, this.end.y)
 
         this.recalc()
     }
@@ -224,22 +231,83 @@ class svgCurve {
 
 
     setStart(p: point) {
+        let oldStart = this.start
         this.start = p
+
+        if (this.start.y != this.end.y) {
+            this.c1.x = (((this.c1.x - oldStart.x) / (this.end.x - oldStart.x)) * (this.end.x - this.start.x) + this.start.x)
+            this.c1.y = (((this.c1.y - oldStart.y) / (this.end.y - oldStart.y)) * (this.end.y - this.start.y) + this.start.y)
+
+            this.c2.x = (((this.c2.x - oldStart.x) / (this.end.x - oldStart.x)) * (this.end.x - this.start.x) + this.start.x)
+            this.c2.y = (((this.c2.y - oldStart.y) / (this.end.y - oldStart.y)) * (this.end.y - this.start.y) + this.start.y)
+        }
+
+        if (this.start.y < this.end.y && this.start.x < this.end.x) {
+            this.c1.y = Math.min(this.c1.y, this.start.y)
+            this.c2.y = Math.max(this.c2.y, this.end.y)
+        } else {
+            this.c1.y = Math.max(this.c1.y, this.start.y)
+            this.c2.y = Math.min(this.c2.y, this.end.y)
+        }
+
+        this.c1.x = Math.max(this.c1.x, this.start.x)
+        this.c2.x = Math.min(this.c2.x, this.end.x)
+
         this.recalc()
     }
 
     setC1(p: point) {
         this.c1 = p
+
+        this.c1.x = Math.max(this.c1.x, this.start.x)
+
+        if (this.start.y < this.end.y && this.start.x < this.end.x) {
+            this.c1.y = Math.min(this.c1.y, this.start.y)
+            this.c2.y = Math.max(this.c2.y, this.end.y)
+        } else {
+            this.c1.y = Math.max(this.c1.y, this.start.y)
+            this.c2.y = Math.min(this.c2.y, this.end.y)
+        }
+
         this.recalc()
     }
 
     setC2(p: point) {
         this.c2 = p
+
+        this.c2.x = Math.min(this.c2.x, this.end.x)
+
+        if (this.start.y < this.end.y && this.start.x < this.end.x) {
+
+            this.c1.y = Math.min(this.c1.y, this.start.y)
+            this.c2.y = Math.max(this.c2.y, this.end.y)
+        } else {
+            this.c1.y = Math.max(this.c1.y, this.start.y)
+            this.c2.y = Math.min(this.c2.y, this.end.y)
+        }
+
         this.recalc()
     }
 
     setEnd(p: point) {
+        let oldEnd = this.end
         this.end = p
+
+        this.c1.x = (((this.c1.x - this.start.x) / (oldEnd.x - this.start.x)) * (this.end.x - this.start.x) + this.start.x)
+        this.c1.y = (((this.c1.y - this.start.y) / (oldEnd.x - this.start.y)) * (this.end.y - this.start.y) + this.start.y)
+
+        this.c2.x = (((this.c2.x - this.start.x) / (oldEnd.x - this.start.x)) * (this.end.x - this.start.x) + this.start.x)
+        this.c2.y = (((this.c2.y - this.start.y) / (oldEnd.x - this.start.y)) * (this.end.y - this.start.y) + this.start.y)
+
+        if (this.start.y < this.end.y && this.start.x < this.end.x) {
+
+            this.c1.y = Math.min(this.c1.y, this.start.y)
+            this.c2.y = Math.max(this.c2.y, this.end.y)
+        } else {
+            this.c1.y = Math.max(this.c1.y, this.start.y)
+            this.c2.y = Math.min(this.c2.y, this.end.y)
+        }
+
         this.recalc()
     }
 
@@ -255,7 +323,8 @@ class svgCurve {
 
     getEnd(): point { return this.end }
 
-    recalc() {
+    calcCenter(): point {
+
         let d = [[this.start, this.end], [this.c1, this.c2]]
 
         let a0 = (d[0][0].y - d[0][1].y) / (d[0][0].x - d[0][1].x)
@@ -268,12 +337,18 @@ class svgCurve {
         let y = a0 * x + b0
 
         if (x != x || y != y) { //couldn't use isNaN for some reason
-            this.center = point.add(this.start, this.end).multiply(1 / 2)
+            return point.add(this.start, this.end).multiply(1 / 2)
         }
         else {
-            this.center = new point(x, y)
+            return new point(x, y)
         }
+    }
 
+    recalc() {
+
+        this.onUpdate(this);
+
+        this.center = this.calcCenter()
 
         this.element.setAttribute("d", this.getSVGData())
     }
@@ -294,6 +369,16 @@ class svgCurve {
         //     " Q " + this.c1.x + " " + this.c1.y + //startpoint curve towards
         //     " , " + center.x + " " + center.y + //center
         //     " T " + this.end.x + " " + this.end.y)
+    }
+
+    private onUpdate(curve: svgCurve) {
+        this.events.forEach(event => {
+            event.callback(this);
+        });
+    }
+
+    addEvent(id: string, callback: (s: svgCurve) => void) {
+        this.events.push({ id, callback })
     }
 }
 
@@ -356,3 +441,5 @@ function makeSVGElement(tag: string, attrs?: object): SVGElement {
     }
     return el;
 }
+
+

@@ -1,9 +1,11 @@
 /// <reference path="Graph.ts" />
 
 class GraphEditor {
-    nodes: Pair<GraphNode, [number, number]>[] = []
+    nodes: GraphNode[] = []
     container: HTMLDivElement;
     svgContainer: SVGElement;
+    private isDraggingCurve: boolean = false;
+    private draggingFrom: GraphPlug;
 
     constructor(container: HTMLDivElement, bg: HTMLDivElement, svgContainer: SVGElement, graph: Graph) {
         bg.addEventListener("click", this.spawnNode.bind(this)) //Don't know how "bind" works, but it makes it so the event fucntion has the instance of GraphEditor as 'this' instead of somehting else
@@ -15,18 +17,21 @@ class GraphEditor {
         e.preventDefault()
         let n = new GraphNode("TestNode", [new GraphPlug(GraphType.Num), new GraphPlug(GraphType.Text), new GraphPlug(GraphType.Emoji)], [new GraphPlug(GraphType.Num), new GraphPlug(GraphType.Time)]);
 
-
         let nodeDiv = this.makeNodeElement(n)
         nodeDiv.setAttribute("style", "top: " + e.clientY.toString() + "px; left: " + e.clientX.toString() + "px")
         this.container.appendChild(nodeDiv)
+        this.nodes.push(n)
     }
 
     handleCurve(e: MouseEvent, div: HTMLDivElement, plug: GraphPlug) {
+        this.isDraggingCurve = true
+        this.draggingFrom = plug
         e.preventDefault()
-        let start = new point(e.clientX, e.clientY)
+        let rect = div.getBoundingClientRect()
+        let start = new point(rect.x + rect.width / 2, rect.y + rect.height / 2)
         let end = new point(e.clientX, e.clientY)
 
-        let curveSVG = makeSVGElement("path", { "fill": "none", "stroke": "red", "stroke-width": 3 })
+        let curveSVG = makeSVGElement("path", { "fill": "none", "stroke": window.getComputedStyle(div).backgroundColor, "stroke-width": 4 })
 
         let center = point.add(start, end).multiply(1 / 2)
 
@@ -35,7 +40,7 @@ class GraphEditor {
 
 
         let curve = new svgCurve(curveSVG, start, end)
-        let centerDot = makeSVGElement("circle", { "fill": "red", "r": 3, "pointer-events": "all" })
+        //let centerDot = makeSVGElement("circle", { "fill": "red", "r": 3, "pointer-events": "all" })
 
         let dragCurve = (e: MouseEvent) => {
 
@@ -50,52 +55,54 @@ class GraphEditor {
             curve.setC2(p2)
             curve.setEnd(end)
 
-            centerDot.setAttribute("cx", curve.getCenter().x.toString())
-            centerDot.setAttribute("cy", curve.getCenter().y.toString())
+            //centerDot.setAttribute("cx", curve.getCenter().x.toString())
+            //centerDot.setAttribute("cy", curve.getCenter().y.toString())
         }
 
 
 
         let releaseCurve = (e: MouseEvent) => {
+            this.isDraggingCurve = false
+            this.draggingFrom = null
             document.removeEventListener("mousemove", dragCurve)
             document.removeEventListener("mouseup", releaseCurve)
 
+            /* 
             let dots: { setter: (p: point) => void, getter: () => point, element: SVGElement }[] = [
                 { setter: curve.setStart.bind(curve), getter: curve.getStart.bind(curve), element: makeSVGElement("circle", { "fill": "orange", "r": 5, "pointer-events": "all" }) },
                 { setter: curve.setC1.bind(curve), getter: curve.getC1.bind(curve), element: makeSVGElement("circle", { "fill": "yellow", "r": 5, "pointer-events": "all" }) },
                 { setter: curve.setC2.bind(curve), getter: curve.getC2.bind(curve), element: makeSVGElement("circle", { "fill": "blue", "r": 5, "pointer-events": "all" }) },
                 { setter: curve.setEnd.bind(curve), getter: curve.getEnd.bind(curve), element: makeSVGElement("circle", { "fill": "purple", "r": 5, "pointer-events": "all" }) }]
-
-            curve.addEvent("updateshit", (curve) => {
-                dots.forEach(dot => {
-                    dot.element.setAttribute("cx", dot.getter().x.toString())
-                    dot.element.setAttribute("cy", dot.getter().y.toString())
+                curve.addEvent("updateshit", (curve) => {
+                    dots.forEach(dot => {
+                        dot.element.setAttribute("cx", dot.getter().x.toString())
+                        dot.element.setAttribute("cy", dot.getter().y.toString())
+                    })
+                    
                 })
-
-            })
-
-
-            dots.forEach(dot => handleDotWrapper(dot))
-
-            function handleDotWrapper(dot: { setter: (p: point) => void, getter: () => point, element: SVGElement }) {
+                
+                
+                dots.forEach(dot => handleDotWrapper(dot))
+                
+                function handleDotWrapper(dot: { setter: (p: point) => void, getter: () => point, element: SVGElement }) {
                 dot.element.addEventListener("mousedown", handleDot)
-
+                
                 dot.element.setAttribute("cx", dot.getter().x.toString())
                 dot.element.setAttribute("cy", dot.getter().y.toString())
-
+                
                 function handleDot(_: MouseEvent) {
                     document.addEventListener("mousemove", dragDot)
                     document.addEventListener("mouseup", releaseDot)
-
+                    
                     function dragDot(e: MouseEvent) {
                         dot.setter(new point(e.clientX, e.clientY))
                         dot.element.setAttribute("cx", dot.getter().x.toString())
                         dot.element.setAttribute("cy", dot.getter().y.toString())
-
+                        
                         centerDot.setAttribute("cx", curve.getCenter().x.toString())
                         centerDot.setAttribute("cy", curve.getCenter().y.toString())
                     }
-
+                    
                     function releaseDot(_: MouseEvent) {
                         document.removeEventListener("mousemove", dragDot)
                         document.removeEventListener("mouseup", releaseDot)
@@ -104,10 +111,11 @@ class GraphEditor {
             }
 
             dots.forEach(dot => this.svgContainer.appendChild(dot.element))
+            */
         }
 
         this.svgContainer.appendChild(curveSVG)
-        this.svgContainer.appendChild(centerDot)
+        //this.svgContainer.appendChild(centerDot)
 
         document.addEventListener("mousemove", dragCurve)
 
@@ -173,7 +181,12 @@ class GraphEditor {
             let dot = document.createElement("div") //Make a div for the dot
             let text = document.createElement("p") //Make a paragraph for the name of the input
             dot.classList.add("typeDot", GraphType[input.Type])  //Set classes for css
-            dot.addEventListener("mousedown", (e) => this.handleCurve(e, dot, input)) //Make clicking the dot do curve things //TODOOO: make this also keep track of relations
+            //dot.addEventListener("mousedown", (e) => this.handleCurve(e, dot, input)) //Make clicking the dot do curve things //TODOOO: make this also keep track of relations
+            dot.addEventListener("mouseup", (e) => {
+                if (this.draggingFrom.Type == input.Type && this.isDraggingCurve) {
+                    alert("Poggers")
+                }
+            })
             text.innerHTML = GraphType[input.Type] //Set the text of the paragrah to be the type of the input (enum -> text)
             inputDiv.appendChild(dot)
             inputDiv.appendChild(text)
@@ -191,6 +204,7 @@ class GraphEditor {
             let text = document.createElement("p")
             dot.classList.add("typeDot", GraphType[output.Type])  //Set classes for css
             dot.addEventListener("mousedown", (e) => this.handleCurve(e, dot, output))
+
             text.innerHTML = GraphType[output.Type]
             outputDiv.appendChild(dot)
             outputDiv.appendChild(text)

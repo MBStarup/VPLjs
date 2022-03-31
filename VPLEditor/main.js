@@ -46,6 +46,7 @@ var Pair = /** @class */ (function () {
 var GraphEditor = /** @class */ (function () {
     function GraphEditor(container, bg, svgContainer, graph) {
         this.nodes = [];
+        this.isDraggingCurve = false;
         bg.addEventListener("click", this.spawnNode.bind(this)); //Don't know how "bind" works, but it makes it so the event fucntion has the instance of GraphEditor as 'this' instead of somehting else
         this.container = container;
         this.svgContainer = svgContainer;
@@ -56,18 +57,22 @@ var GraphEditor = /** @class */ (function () {
         var nodeDiv = this.makeNodeElement(n);
         nodeDiv.setAttribute("style", "top: " + e.clientY.toString() + "px; left: " + e.clientX.toString() + "px");
         this.container.appendChild(nodeDiv);
+        this.nodes.push(n);
     };
     GraphEditor.prototype.handleCurve = function (e, div, plug) {
         var _this = this;
+        this.isDraggingCurve = true;
+        this.draggingFrom = plug;
         e.preventDefault();
-        var start = new point(e.clientX, e.clientY);
+        var rect = div.getBoundingClientRect();
+        var start = new point(rect.x + rect.width / 2, rect.y + rect.height / 2);
         var end = new point(e.clientX, e.clientY);
-        var curveSVG = makeSVGElement("path", { "fill": "none", "stroke": "red", "stroke-width": 3 });
+        var curveSVG = makeSVGElement("path", { "fill": "none", "stroke": window.getComputedStyle(div).backgroundColor, "stroke-width": 4 });
         var center = point.add(start, end).multiply(1 / 2);
         var p1 = new point(center.x, start.y);
         var p2 = new point(center.x, end.y);
         var curve = new svgCurve(curveSVG, start, end);
-        var centerDot = makeSVGElement("circle", { "fill": "red", "r": 3, "pointer-events": "all" });
+        //let centerDot = makeSVGElement("circle", { "fill": "red", "r": 3, "pointer-events": "all" })
         var dragCurve = function (e) {
             end = new point(e.clientX, e.clientY);
             center = point.add(start, end).multiply(1 / 2);
@@ -76,49 +81,62 @@ var GraphEditor = /** @class */ (function () {
             curve.setC1(p1);
             curve.setC2(p2);
             curve.setEnd(end);
-            centerDot.setAttribute("cx", curve.getCenter().x.toString());
-            centerDot.setAttribute("cy", curve.getCenter().y.toString());
+            //centerDot.setAttribute("cx", curve.getCenter().x.toString())
+            //centerDot.setAttribute("cy", curve.getCenter().y.toString())
         };
         var releaseCurve = function (e) {
+            _this.isDraggingCurve = false;
+            _this.draggingFrom = null;
             document.removeEventListener("mousemove", dragCurve);
             document.removeEventListener("mouseup", releaseCurve);
-            var dots = [
+            /*
+            let dots: { setter: (p: point) => void, getter: () => point, element: SVGElement }[] = [
                 { setter: curve.setStart.bind(curve), getter: curve.getStart.bind(curve), element: makeSVGElement("circle", { "fill": "orange", "r": 5, "pointer-events": "all" }) },
                 { setter: curve.setC1.bind(curve), getter: curve.getC1.bind(curve), element: makeSVGElement("circle", { "fill": "yellow", "r": 5, "pointer-events": "all" }) },
                 { setter: curve.setC2.bind(curve), getter: curve.getC2.bind(curve), element: makeSVGElement("circle", { "fill": "blue", "r": 5, "pointer-events": "all" }) },
-                { setter: curve.setEnd.bind(curve), getter: curve.getEnd.bind(curve), element: makeSVGElement("circle", { "fill": "purple", "r": 5, "pointer-events": "all" }) }
-            ];
-            curve.addEvent("updateshit", function (curve) {
-                dots.forEach(function (dot) {
-                    dot.element.setAttribute("cx", dot.getter().x.toString());
-                    dot.element.setAttribute("cy", dot.getter().y.toString());
-                });
-            });
-            dots.forEach(function (dot) { return handleDotWrapper(dot); });
-            function handleDotWrapper(dot) {
-                dot.element.addEventListener("mousedown", handleDot);
-                dot.element.setAttribute("cx", dot.getter().x.toString());
-                dot.element.setAttribute("cy", dot.getter().y.toString());
-                function handleDot(_) {
-                    document.addEventListener("mousemove", dragDot);
-                    document.addEventListener("mouseup", releaseDot);
-                    function dragDot(e) {
-                        dot.setter(new point(e.clientX, e.clientY));
-                        dot.element.setAttribute("cx", dot.getter().x.toString());
-                        dot.element.setAttribute("cy", dot.getter().y.toString());
-                        centerDot.setAttribute("cx", curve.getCenter().x.toString());
-                        centerDot.setAttribute("cy", curve.getCenter().y.toString());
+                { setter: curve.setEnd.bind(curve), getter: curve.getEnd.bind(curve), element: makeSVGElement("circle", { "fill": "purple", "r": 5, "pointer-events": "all" }) }]
+                curve.addEvent("updateshit", (curve) => {
+                    dots.forEach(dot => {
+                        dot.element.setAttribute("cx", dot.getter().x.toString())
+                        dot.element.setAttribute("cy", dot.getter().y.toString())
+                    })
+                    
+                })
+                
+                
+                dots.forEach(dot => handleDotWrapper(dot))
+                
+                function handleDotWrapper(dot: { setter: (p: point) => void, getter: () => point, element: SVGElement }) {
+                dot.element.addEventListener("mousedown", handleDot)
+                
+                dot.element.setAttribute("cx", dot.getter().x.toString())
+                dot.element.setAttribute("cy", dot.getter().y.toString())
+                
+                function handleDot(_: MouseEvent) {
+                    document.addEventListener("mousemove", dragDot)
+                    document.addEventListener("mouseup", releaseDot)
+                    
+                    function dragDot(e: MouseEvent) {
+                        dot.setter(new point(e.clientX, e.clientY))
+                        dot.element.setAttribute("cx", dot.getter().x.toString())
+                        dot.element.setAttribute("cy", dot.getter().y.toString())
+                        
+                        centerDot.setAttribute("cx", curve.getCenter().x.toString())
+                        centerDot.setAttribute("cy", curve.getCenter().y.toString())
                     }
-                    function releaseDot(_) {
-                        document.removeEventListener("mousemove", dragDot);
-                        document.removeEventListener("mouseup", releaseDot);
+                    
+                    function releaseDot(_: MouseEvent) {
+                        document.removeEventListener("mousemove", dragDot)
+                        document.removeEventListener("mouseup", releaseDot)
                     }
                 }
             }
-            dots.forEach(function (dot) { return _this.svgContainer.appendChild(dot.element); });
+
+            dots.forEach(dot => this.svgContainer.appendChild(dot.element))
+            */
         };
         this.svgContainer.appendChild(curveSVG);
-        this.svgContainer.appendChild(centerDot);
+        //this.svgContainer.appendChild(centerDot)
         document.addEventListener("mousemove", dragCurve);
         releaseCurve = releaseCurve.bind(this);
         document.addEventListener("mouseup", releaseCurve);
@@ -170,7 +188,12 @@ var GraphEditor = /** @class */ (function () {
             var dot = document.createElement("div"); //Make a div for the dot
             var text = document.createElement("p"); //Make a paragraph for the name of the input
             dot.classList.add("typeDot", GraphType[input.Type]); //Set classes for css
-            dot.addEventListener("mousedown", function (e) { return _this.handleCurve(e, dot, input); }); //Make clicking the dot do curve things //TODOOO: make this also keep track of relations
+            //dot.addEventListener("mousedown", (e) => this.handleCurve(e, dot, input)) //Make clicking the dot do curve things //TODOOO: make this also keep track of relations
+            dot.addEventListener("mouseup", function (e) {
+                if (_this.draggingFrom.Type == input.Type && _this.isDraggingCurve) {
+                    alert("Poggers");
+                }
+            });
             text.innerHTML = GraphType[input.Type]; //Set the text of the paragrah to be the type of the input (enum -> text)
             inputDiv.appendChild(dot);
             inputDiv.appendChild(text);

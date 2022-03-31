@@ -68,7 +68,7 @@ var GraphEditor = /** @class */ (function () {
     GraphEditor.prototype.spawnNode = function (e) {
         ++this.count;
         e.preventDefault();
-        var myGraphEditorNode = new GraphEditorNode("TestNode" + this.count.toString(), [new InPlug(GraphType.Num), new InPlug(GraphType.Text), new InPlug(GraphType.Emoji), new InPlug(GraphType.Time)], [new OutPlug(GraphType.Num), new OutPlug(GraphType.Time)], new point(e.clientX, e.clientY));
+        var myGraphEditorNode = new GraphEditorNode("TestNode" + this.count.toString(), [new InPlug(GraphType.Num), new InPlug(GraphType.Text), new InPlug(GraphType.Emoji), new InPlug(GraphType.Time)], [new OutPlug(GraphType.Num), new OutPlug(GraphType.Time), new OutPlug(GraphType.Text)], new point(e.clientX, e.clientY));
         this.container.appendChild(myGraphEditorNode.div);
     };
     return GraphEditor;
@@ -291,6 +291,7 @@ var GraphEditorNode = /** @class */ (function () {
         var inputListDiv = document.createElement("div");
         inputListDiv.classList.add("inputList");
         Inputs === null || Inputs === void 0 ? void 0 : Inputs.forEach(function (input) {
+            input.ParentNode = _this;
             var inputDiv = document.createElement("div");
             inputDiv.classList.add("input");
             var dot = document.createElement("div");
@@ -307,6 +308,7 @@ var GraphEditorNode = /** @class */ (function () {
         outputListDiv.classList.add("outputList");
         bodyDiv.appendChild(outputListDiv);
         Outputs === null || Outputs === void 0 ? void 0 : Outputs.forEach(function (output) {
+            output.ParentNode = _this;
             var outputDiv = document.createElement("div");
             outputDiv.classList.add("output");
             var dot = document.createElement("div");
@@ -370,19 +372,24 @@ function handleCurve(e, div, plug) {
         document.removeEventListener("mousemove", dragCurve);
         document.removeEventListener("mouseup", releaseCurve);
         var targetPlug = e.target;
-        while (targetPlug && !targetPlug.plug) {
+        while (targetPlug && !targetPlug.plug) { //Move up the parent hierachy, useless for the plugs, as they are (currently at least) leaf nodes, but could be useful if we want to select nodeDiv
             targetPlug = targetPlug.parentNode;
         }
-        if (!targetPlug) {
+        if (!targetPlug) { //If it's not a plug
             curveSVG.remove();
             return;
         }
-        if (targetPlug.plug instanceof OutPlug) {
+        if (targetPlug.plug instanceof OutPlug) { //If it's an OutPlug
+            curveSVG.remove();
+            return;
+        }
+        if (targetPlug.plug.Type != plug.Type) { //If it's not a matching type
             curveSVG.remove();
             return;
         }
         console.log(targetPlug.plug);
         console.log(targetPlug.plug.ParentNode);
+        //Associate the plug with the curve
         var dots = [
             { setter: curve.setStart.bind(curve), getter: curve.getStart.bind(curve), element: makeSVGElement("circle", { "fill": "orange", "r": 5, "pointer-events": "all" }) },
             { setter: curve.setC1.bind(curve), getter: curve.getC1.bind(curve), element: makeSVGElement("circle", { "fill": "yellow", "r": 5, "pointer-events": "all" }) },

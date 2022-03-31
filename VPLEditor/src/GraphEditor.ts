@@ -419,16 +419,21 @@ function handleCurve(e: MouseEvent, div: HTMLDivElement, plug: OutPlug) {
         document.removeEventListener("mouseup", releaseCurve)
 
         let targetPlug = e.target as PlugDiv
-        while (targetPlug && !targetPlug.plug) {
+        while (targetPlug && !targetPlug.plug) { //Move up the parent hierachy, useless for the plugs, as they are (currently at least) leaf nodes, but could be useful if we want to select nodeDiv
             targetPlug = targetPlug.parentNode as PlugDiv
         }
 
-        if (!targetPlug) {
+        if (!targetPlug) { //If it's not a plug
             curveSVG.remove()
             return
         }
 
-        if (targetPlug.plug instanceof OutPlug) {
+        if (targetPlug.plug instanceof OutPlug) { //If it's an OutPlug
+            curveSVG.remove()
+            return
+        }
+
+        if (targetPlug.plug.Type != plug.Type) { //If it's not a matching type
             curveSVG.remove()
             return
         }

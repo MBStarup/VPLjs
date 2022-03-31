@@ -1,3 +1,18 @@
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    return function (d, b) {
+        if (typeof b !== "function" && b !== null)
+            throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
 var Graph = /** @class */ (function () {
     function Graph() {
     }
@@ -45,177 +60,16 @@ var Pair = /** @class */ (function () {
 /// <reference path="Graph.ts" />
 var GraphEditor = /** @class */ (function () {
     function GraphEditor(container, bg, svgContainer, graph) {
-        this.nodes = [];
-        this.isDraggingCurve = false;
+        this.count = 0;
         bg.addEventListener("click", this.spawnNode.bind(this)); //Don't know how "bind" works, but it makes it so the event fucntion has the instance of GraphEditor as 'this' instead of somehting else
         this.container = container;
         this.svgContainer = svgContainer;
     }
     GraphEditor.prototype.spawnNode = function (e) {
+        ++this.count;
         e.preventDefault();
-        var n = new GraphNode("TestNode", [new GraphPlug(GraphType.Num), new GraphPlug(GraphType.Text), new GraphPlug(GraphType.Emoji)], [new GraphPlug(GraphType.Num), new GraphPlug(GraphType.Time)]);
-        var nodeDiv = this.makeNodeElement(n);
-        nodeDiv.setAttribute("style", "top: " + e.clientY.toString() + "px; left: " + e.clientX.toString() + "px");
-        this.container.appendChild(nodeDiv);
-        this.nodes.push(n);
-    };
-    GraphEditor.prototype.handleCurve = function (e, div, plug) {
-        var _this = this;
-        this.isDraggingCurve = true;
-        this.draggingFrom = plug;
-        e.preventDefault();
-        var rect = div.getBoundingClientRect();
-        var start = new point(rect.x + rect.width / 2, rect.y + rect.height / 2);
-        var end = new point(e.clientX, e.clientY);
-        var curveSVG = makeSVGElement("path", { "fill": "none", "stroke": window.getComputedStyle(div).backgroundColor, "stroke-width": 4 });
-        var center = point.add(start, end).multiply(1 / 2);
-        var p1 = new point(center.x, start.y);
-        var p2 = new point(center.x, end.y);
-        var curve = new svgCurve(curveSVG, start, end);
-        //let centerDot = makeSVGElement("circle", { "fill": "red", "r": 3, "pointer-events": "all" })
-        var dragCurve = function (e) {
-            end = new point(e.clientX, e.clientY);
-            center = point.add(start, end).multiply(1 / 2);
-            p1 = new point((start.x + center.x) / 2, start.y);
-            p2 = new point((end.x + center.x) / 2, end.y);
-            curve.setC1(p1);
-            curve.setC2(p2);
-            curve.setEnd(end);
-            //centerDot.setAttribute("cx", curve.getCenter().x.toString())
-            //centerDot.setAttribute("cy", curve.getCenter().y.toString())
-        };
-        var releaseCurve = function (e) {
-            _this.isDraggingCurve = false;
-            _this.draggingFrom = null;
-            document.removeEventListener("mousemove", dragCurve);
-            document.removeEventListener("mouseup", releaseCurve);
-            /*
-            let dots: { setter: (p: point) => void, getter: () => point, element: SVGElement }[] = [
-                { setter: curve.setStart.bind(curve), getter: curve.getStart.bind(curve), element: makeSVGElement("circle", { "fill": "orange", "r": 5, "pointer-events": "all" }) },
-                { setter: curve.setC1.bind(curve), getter: curve.getC1.bind(curve), element: makeSVGElement("circle", { "fill": "yellow", "r": 5, "pointer-events": "all" }) },
-                { setter: curve.setC2.bind(curve), getter: curve.getC2.bind(curve), element: makeSVGElement("circle", { "fill": "blue", "r": 5, "pointer-events": "all" }) },
-                { setter: curve.setEnd.bind(curve), getter: curve.getEnd.bind(curve), element: makeSVGElement("circle", { "fill": "purple", "r": 5, "pointer-events": "all" }) }]
-                curve.addEvent("updateshit", (curve) => {
-                    dots.forEach(dot => {
-                        dot.element.setAttribute("cx", dot.getter().x.toString())
-                        dot.element.setAttribute("cy", dot.getter().y.toString())
-                    })
-                    
-                })
-                
-                
-                dots.forEach(dot => handleDotWrapper(dot))
-                
-                function handleDotWrapper(dot: { setter: (p: point) => void, getter: () => point, element: SVGElement }) {
-                dot.element.addEventListener("mousedown", handleDot)
-                
-                dot.element.setAttribute("cx", dot.getter().x.toString())
-                dot.element.setAttribute("cy", dot.getter().y.toString())
-                
-                function handleDot(_: MouseEvent) {
-                    document.addEventListener("mousemove", dragDot)
-                    document.addEventListener("mouseup", releaseDot)
-                    
-                    function dragDot(e: MouseEvent) {
-                        dot.setter(new point(e.clientX, e.clientY))
-                        dot.element.setAttribute("cx", dot.getter().x.toString())
-                        dot.element.setAttribute("cy", dot.getter().y.toString())
-                        
-                        centerDot.setAttribute("cx", curve.getCenter().x.toString())
-                        centerDot.setAttribute("cy", curve.getCenter().y.toString())
-                    }
-                    
-                    function releaseDot(_: MouseEvent) {
-                        document.removeEventListener("mousemove", dragDot)
-                        document.removeEventListener("mouseup", releaseDot)
-                    }
-                }
-            }
-
-            dots.forEach(dot => this.svgContainer.appendChild(dot.element))
-            */
-        };
-        this.svgContainer.appendChild(curveSVG);
-        //this.svgContainer.appendChild(centerDot)
-        document.addEventListener("mousemove", dragCurve);
-        releaseCurve = releaseCurve.bind(this);
-        document.addEventListener("mouseup", releaseCurve);
-    };
-    GraphEditor.prototype.dragNode = function (e, node) {
-        e.preventDefault();
-        var newX;
-        var newY;
-        var oldX = e.clientX;
-        var oldY = e.clientY;
-        node.style.zIndex = "1";
-        document.addEventListener("mouseup", stopDragNode);
-        document.addEventListener("mousemove", dragMove);
-        function dragMove(e) {
-            newX = oldX - e.clientX;
-            newY = oldY - e.clientY;
-            oldX = e.clientX;
-            oldY = e.clientY;
-            // set the element's new position:
-            node.style.top = (node.offsetTop - newY) + "px";
-            node.style.left = (node.offsetLeft - newX) + "px";
-        }
-        function stopDragNode(e) {
-            document.removeEventListener("mouseup", stopDragNode);
-            document.removeEventListener("mousemove", dragMove);
-            node.style.zIndex = null;
-        }
-    };
-    GraphEditor.prototype.makeNodeElement = function (n) {
-        var _this = this;
-        var _a, _b;
-        var nodeDiv = document.createElement("div"); //Make the outer div
-        nodeDiv.classList.add("node"); //Set the class for the css
-        var headerDiv = document.createElement("div"); //Make the header of the node (Where the name is written)
-        headerDiv.classList.add("header"); //Set class for css
-        var headerText = document.createElement("p");
-        headerText.innerText = n.Name; //Set the text in the header  
-        headerDiv.appendChild(headerText);
-        headerDiv.addEventListener("mousedown", function (e) { return _this.dragNode(e, nodeDiv); }); //Make it draggable
-        nodeDiv.appendChild(headerDiv); //Add the header to the outer div
-        var bodyDiv = document.createElement("div"); // make the body of the node (Where the inputs and outputs go)
-        bodyDiv.classList.add("body"); //Set class for css
-        nodeDiv.appendChild(bodyDiv); //Add the body to the outer div
-        var inputListDiv = document.createElement("div"); //Create the container for the inputs
-        inputListDiv.classList.add("inputList"); //Set class for css
-        (_a = n.Inputs) === null || _a === void 0 ? void 0 : _a.forEach(function (input) {
-            var inputDiv = document.createElement("div");
-            inputDiv.classList.add("input"); //Set class for css
-            var dot = document.createElement("div"); //Make a div for the dot
-            var text = document.createElement("p"); //Make a paragraph for the name of the input
-            dot.classList.add("typeDot", GraphType[input.Type]); //Set classes for css
-            //dot.addEventListener("mousedown", (e) => this.handleCurve(e, dot, input)) //Make clicking the dot do curve things //TODOOO: make this also keep track of relations
-            dot.addEventListener("mouseup", function (e) {
-                if (_this.draggingFrom.Type == input.Type && _this.isDraggingCurve) {
-                    alert("Poggers");
-                }
-            });
-            text.innerHTML = GraphType[input.Type]; //Set the text of the paragrah to be the type of the input (enum -> text)
-            inputDiv.appendChild(dot);
-            inputDiv.appendChild(text);
-            inputListDiv.appendChild(inputDiv);
-        });
-        bodyDiv.appendChild(inputListDiv); //Add the inputs to the body
-        var outputListDiv = document.createElement("div");
-        outputListDiv.classList.add("outputList"); //Set class for css
-        bodyDiv.appendChild(outputListDiv);
-        (_b = n.Outputs) === null || _b === void 0 ? void 0 : _b.forEach(function (output) {
-            var outputDiv = document.createElement("div");
-            outputDiv.classList.add("output");
-            var dot = document.createElement("div");
-            var text = document.createElement("p");
-            dot.classList.add("typeDot", GraphType[output.Type]); //Set classes for css
-            dot.addEventListener("mousedown", function (e) { return _this.handleCurve(e, dot, output); });
-            text.innerHTML = GraphType[output.Type];
-            outputDiv.appendChild(dot);
-            outputDiv.appendChild(text);
-            outputListDiv.appendChild(outputDiv);
-        });
-        return nodeDiv;
+        var myGraphEditorNode = new GraphEditorNode("TestNode" + this.count.toString(), [new InPlug(GraphType.Num), new InPlug(GraphType.Text), new InPlug(GraphType.Emoji), new InPlug(GraphType.Time)], [new OutPlug(GraphType.Num), new OutPlug(GraphType.Time)], new point(e.clientX, e.clientY));
+        this.container.appendChild(myGraphEditorNode.div);
     };
     return GraphEditor;
 }());
@@ -319,7 +173,7 @@ var svgCurve = /** @class */ (function () {
         }
     };
     svgCurve.prototype.recalc = function () {
-        this.onUpdate(this);
+        this.onUpdate();
         this.center = this.calcCenter();
         this.element.setAttribute("d", this.getSVGData());
     };
@@ -332,7 +186,7 @@ var svgCurve = /** @class */ (function () {
             " , " + +" " + this.c2.x + " " + this.c2.y +
             " , " + this.end.x + " " + this.end.y);
     };
-    svgCurve.prototype.onUpdate = function (curve) {
+    svgCurve.prototype.onUpdate = function () {
         var _this = this;
         this.events.forEach(function (event) {
             event.callback(_this);
@@ -384,6 +238,189 @@ function makeSVGElement(tag, attrs) {
         el.setAttribute(k, attrs[k]);
     }
     return el;
+}
+var GraphEditorNode = /** @class */ (function () {
+    function GraphEditorNode(Name, Inputs, Outputs, position) {
+        this.Name = Name;
+        this.Inputs = Inputs;
+        this.Outputs = Outputs;
+        this.div = this.makeNodeElement(this.Name, this.Inputs, this.Outputs);
+        this.setPosition(position);
+    }
+    GraphEditorNode.prototype.setPosition = function (p) {
+        this.pos = p;
+        this.div.setAttribute("style", "left: " + this.pos.x.toString() + "px;" + "top: " + this.pos.y.toString() + "px;");
+    };
+    GraphEditorNode.prototype.dragNode = function (e, node) {
+        e.preventDefault();
+        var newX;
+        var newY;
+        var oldX = e.clientX;
+        var oldY = e.clientY;
+        node.div.style.zIndex = "1";
+        document.addEventListener("mouseup", stopDragNode);
+        document.addEventListener("mousemove", dragMove);
+        function dragMove(e) {
+            newX = oldX - e.clientX;
+            newY = oldY - e.clientY;
+            oldX = e.clientX;
+            oldY = e.clientY;
+            node.setPosition(new point((node.div.offsetLeft - newX), (node.div.offsetTop - newY)));
+        }
+        function stopDragNode(e) {
+            document.removeEventListener("mouseup", stopDragNode);
+            document.removeEventListener("mousemove", dragMove);
+            node.div.style.zIndex = null;
+        }
+    };
+    GraphEditorNode.prototype.makeNodeElement = function (Name, Inputs, Outputs) {
+        var _this = this;
+        var nodeDiv = document.createElement("div");
+        nodeDiv.classList.add("node");
+        nodeDiv.node = this;
+        var headerDiv = document.createElement("div");
+        headerDiv.classList.add("header");
+        var headerText = document.createElement("p");
+        headerText.innerText = Name;
+        headerDiv.appendChild(headerText);
+        headerDiv.addEventListener("mousedown", function (e) { return _this.dragNode(e, _this); }); //Make it draggable
+        nodeDiv.appendChild(headerDiv);
+        var bodyDiv = document.createElement("div");
+        bodyDiv.classList.add("body");
+        nodeDiv.appendChild(bodyDiv);
+        var inputListDiv = document.createElement("div");
+        inputListDiv.classList.add("inputList");
+        Inputs === null || Inputs === void 0 ? void 0 : Inputs.forEach(function (input) {
+            var inputDiv = document.createElement("div");
+            inputDiv.classList.add("input");
+            var dot = document.createElement("div");
+            dot.plug = input;
+            var text = document.createElement("p");
+            dot.classList.add("typeDot", GraphType[input.Type]);
+            text.innerHTML = input.Name;
+            inputDiv.appendChild(dot);
+            inputDiv.appendChild(text);
+            inputListDiv.appendChild(inputDiv);
+        });
+        bodyDiv.appendChild(inputListDiv);
+        var outputListDiv = document.createElement("div");
+        outputListDiv.classList.add("outputList");
+        bodyDiv.appendChild(outputListDiv);
+        Outputs === null || Outputs === void 0 ? void 0 : Outputs.forEach(function (output) {
+            var outputDiv = document.createElement("div");
+            outputDiv.classList.add("output");
+            var dot = document.createElement("div");
+            dot.plug = output;
+            var text = document.createElement("p");
+            dot.classList.add("typeDot", GraphType[output.Type]);
+            dot.addEventListener("mousedown", function (e) { return handleCurve(e, dot, output); }); //Make clicking the dot do curve things //TODOOO: make this also keep track of relations
+            text.innerHTML = output.Name;
+            outputDiv.appendChild(dot);
+            outputDiv.appendChild(text);
+            outputListDiv.appendChild(outputDiv);
+        });
+        return nodeDiv;
+    };
+    return GraphEditorNode;
+}());
+var Plug = /** @class */ (function () {
+    function Plug(type, Name) {
+        this.Type = type;
+        this.Name = Name !== null && Name !== void 0 ? Name : GraphType[this.Type];
+    }
+    return Plug;
+}());
+var InPlug = /** @class */ (function (_super) {
+    __extends(InPlug, _super);
+    function InPlug(type, Name, HasField) {
+        var _this = _super.call(this, type, Name) || this;
+        _this.HasField = HasField !== null && HasField !== void 0 ? HasField : false;
+        return _this;
+    }
+    return InPlug;
+}(Plug));
+var OutPlug = /** @class */ (function (_super) {
+    __extends(OutPlug, _super);
+    function OutPlug() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    return OutPlug;
+}(Plug));
+function handleCurve(e, div, plug) {
+    var _this = this;
+    e.preventDefault();
+    var rect = div.getBoundingClientRect();
+    var start = new point(rect.x + rect.width / 2, rect.y + rect.height / 2);
+    var end = new point(e.clientX, e.clientY);
+    var curveSVG = makeSVGElement("path", { "fill": "none", "stroke": window.getComputedStyle(div).backgroundColor, "stroke-width": 4 });
+    var center = point.add(start, end).multiply(1 / 2);
+    var p1 = new point(center.x, start.y);
+    var p2 = new point(center.x, end.y);
+    var curve = new svgCurve(curveSVG, start, end);
+    var dragCurve = function (e) {
+        end = new point(e.clientX, e.clientY);
+        center = point.add(start, end).multiply(1 / 2);
+        p1 = new point((start.x + center.x) / 2, start.y);
+        p2 = new point((end.x + center.x) / 2, end.y);
+        curve.setC1(p1);
+        curve.setC2(p2);
+        curve.setEnd(end);
+    };
+    var releaseCurve = function (e) {
+        document.removeEventListener("mousemove", dragCurve);
+        document.removeEventListener("mouseup", releaseCurve);
+        var targetPlug = e.target;
+        while (targetPlug && !targetPlug.plug) {
+            targetPlug = targetPlug.parentNode;
+        }
+        if (!targetPlug) {
+            curveSVG.remove();
+            return;
+        }
+        if (targetPlug.plug instanceof OutPlug) {
+            curveSVG.remove();
+            return;
+        }
+        console.log(targetPlug.plug);
+        console.log(targetPlug.plug.ParentNode);
+        var dots = [
+            { setter: curve.setStart.bind(curve), getter: curve.getStart.bind(curve), element: makeSVGElement("circle", { "fill": "orange", "r": 5, "pointer-events": "all" }) },
+            { setter: curve.setC1.bind(curve), getter: curve.getC1.bind(curve), element: makeSVGElement("circle", { "fill": "yellow", "r": 5, "pointer-events": "all" }) },
+            { setter: curve.setC2.bind(curve), getter: curve.getC2.bind(curve), element: makeSVGElement("circle", { "fill": "blue", "r": 5, "pointer-events": "all" }) },
+            { setter: curve.setEnd.bind(curve), getter: curve.getEnd.bind(curve), element: makeSVGElement("circle", { "fill": "purple", "r": 5, "pointer-events": "all" }) }
+        ];
+        curve.addEvent("updateshit", function (curve) {
+            dots.forEach(function (dot) {
+                dot.element.setAttribute("cx", dot.getter().x.toString());
+                dot.element.setAttribute("cy", dot.getter().y.toString());
+            });
+        });
+        dots.forEach(function (dot) { return handleDotWrapper(dot); });
+        function handleDotWrapper(dot) {
+            dot.element.addEventListener("mousedown", handleDot);
+            dot.element.setAttribute("cx", dot.getter().x.toString());
+            dot.element.setAttribute("cy", dot.getter().y.toString());
+            function handleDot(_) {
+                document.addEventListener("mousemove", dragDot);
+                document.addEventListener("mouseup", releaseDot);
+                function dragDot(e) {
+                    dot.setter(new point(e.clientX, e.clientY));
+                    dot.element.setAttribute("cx", dot.getter().x.toString());
+                    dot.element.setAttribute("cy", dot.getter().y.toString());
+                }
+                function releaseDot(_) {
+                    document.removeEventListener("mousemove", dragDot);
+                    document.removeEventListener("mouseup", releaseDot);
+                }
+            }
+        }
+        dots.forEach(function (dot) { return _this.svgContainer.appendChild(dot.element); });
+    };
+    this.svgContainer.appendChild(curveSVG);
+    //this.svgContainer.appendChild(centerDot)
+    document.addEventListener("mousemove", dragCurve);
+    releaseCurve = releaseCurve.bind(this);
+    document.addEventListener("mouseup", releaseCurve);
 }
 /// <reference path="GraphEditor.ts" />
 var container = document.getElementById('container');

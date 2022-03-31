@@ -13,66 +13,12 @@ class GraphEditor {
 
     spawnNode(e: MouseEvent) {
         e.preventDefault()
-        let n = new GraphNode([new GraphPlug(GraphType.Num), new GraphPlug(GraphType.Text), new GraphPlug(GraphType.Emoji)], [new GraphPlug(GraphType.Num), new GraphPlug(GraphType.Time)]);
-
-        this.nodes.push(new Pair(n, [e.clientX, e.clientY]));
-        let div = this.RenderNode(n, [e.clientX, e.clientY])
-    }
-
-    RenderNode(n: GraphNode, p: [x: number, y: number]): HTMLDivElement { //TODO: Name bad, fix pls
-        let nodeDiv = document.createElement("div") //Make the outer div
-        nodeDiv.classList.add("node") //Set the class for the css
-        nodeDiv.setAttribute("style", "top: " + p[1].toString() + "px; left: " + p[0].toString() + "px") //Set the position to the mouse click
+        let n = new GraphNode("TestNode", [new GraphPlug(GraphType.Num), new GraphPlug(GraphType.Text), new GraphPlug(GraphType.Emoji)], [new GraphPlug(GraphType.Num), new GraphPlug(GraphType.Time)]);
 
 
-        let headerDiv = document.createElement("div") //Make the header of the node (Where the name is written)
-        headerDiv.classList.add("header") //Set class for css
-        headerDiv.innerText = "NODENAME"; //Set the text in the header //TODOOO: make this a property of the node 
-        headerDiv.addEventListener("mousedown", (e) => this.dragNode(e, nodeDiv)) //Make it draggable
-        nodeDiv.appendChild(headerDiv) //Add the header to the outer div
-
-        let bodyDiv = document.createElement("div") // make the body of the node (Where the inputs and outputs go)
-        bodyDiv.classList.add("body") //Set class for css
-        nodeDiv.appendChild(bodyDiv) //Add the body to the outer div
-
-
-
-        let inputListDiv = document.createElement("div") //Create the container for the inputs
-        inputListDiv.classList.add("inputList") //Set class for css
-        n.Inputs?.forEach(input => { //For each input, add a html element to the inputs container
-            let inputDiv = document.createElement("div")
-            inputDiv.classList.add("input") //Set class for css
-            let dot = document.createElement("div") //Make a div for the dot
-            let text = document.createElement("p") //Make a paragraph for the name of the input
-            dot.classList.add("typeDot", GraphType[input.Type])  //Set classes for css
-            dot.addEventListener("mousedown", (e) => this.handleCurve(e, dot, input)) //Make clicking the dot do curve things //TODOOO: make this also keep track of relations
-            text.innerHTML = GraphType[input.Type] //Set the text of the paragrah to be the type of the input (enum -> text)
-            inputDiv.appendChild(dot)
-            inputDiv.appendChild(text)
-            inputListDiv.appendChild(inputDiv)
-        });
-        bodyDiv.appendChild(inputListDiv) //Add the inputs to the body
-
-        let outputListDiv = document.createElement("div")
-        outputListDiv.classList.add("outputList") //Set class for css
-        bodyDiv.appendChild(outputListDiv)
-        n.Outputs?.forEach(output => {
-            let outputDiv = document.createElement("div")
-            outputDiv.classList.add("output")
-            let dot = document.createElement("div")
-            let text = document.createElement("p")
-            dot.classList.add("typeDot", GraphType[output.Type])  //Set classes for css
-            dot.addEventListener("mousedown", (e) => this.handleCurve(e, dot, output))
-            text.innerHTML = GraphType[output.Type]
-            outputDiv.appendChild(dot)
-            outputDiv.appendChild(text)
-            outputListDiv.appendChild(outputDiv)
-        });
-
+        let nodeDiv = this.makeNodeElement(n)
+        nodeDiv.setAttribute("style", "top: " + e.clientY.toString() + "px; left: " + e.clientX.toString() + "px")
         this.container.appendChild(nodeDiv)
-        return nodeDiv;
-
-
     }
 
     handleCurve(e: MouseEvent, div: HTMLDivElement, plug: GraphPlug) {
@@ -82,13 +28,8 @@ class GraphEditor {
 
         let curveSVG = makeSVGElement("path", { "fill": "none", "stroke": "red", "stroke-width": 3 })
 
-
-        //let scaler = 1.5;
         let center = point.add(start, end).multiply(1 / 2)
-        //let inverseSlope = (start.x - e.clientX) / (e.clientY - start.y)
 
-        //let a1 = ((start.y + center.y) / 2) - (((start.x + center.x) / 2) * inverseSlope)
-        //let p1 = new point(((start.x + center.x) / 2) + scaler, ((start.y + center.y) / 2) + inverseSlope * scaler + a1)
         let p1 = new point(center.x, start.y)
         let p2 = new point(center.x, end.y)
 
@@ -204,6 +145,60 @@ class GraphEditor {
             node.style.zIndex = null;
         }
     }
+
+    makeNodeElement(n: GraphNode): HTMLElement {
+        let nodeDiv = document.createElement("div") //Make the outer div
+        nodeDiv.classList.add("node") //Set the class for the css
+
+
+        let headerDiv = document.createElement("div") //Make the header of the node (Where the name is written)
+        headerDiv.classList.add("header") //Set class for css
+        let headerText = document.createElement("p")
+        headerText.innerText = n.Name; //Set the text in the header  
+        headerDiv.appendChild(headerText)
+        headerDiv.addEventListener("mousedown", (e) => this.dragNode(e, nodeDiv)) //Make it draggable
+        nodeDiv.appendChild(headerDiv) //Add the header to the outer div
+
+        let bodyDiv = document.createElement("div") // make the body of the node (Where the inputs and outputs go)
+        bodyDiv.classList.add("body") //Set class for css
+        nodeDiv.appendChild(bodyDiv) //Add the body to the outer div
+
+
+
+        let inputListDiv = document.createElement("div") //Create the container for the inputs
+        inputListDiv.classList.add("inputList") //Set class for css
+        n.Inputs?.forEach(input => { //For each input, add a html element to the inputs container
+            let inputDiv = document.createElement("div")
+            inputDiv.classList.add("input") //Set class for css
+            let dot = document.createElement("div") //Make a div for the dot
+            let text = document.createElement("p") //Make a paragraph for the name of the input
+            dot.classList.add("typeDot", GraphType[input.Type])  //Set classes for css
+            dot.addEventListener("mousedown", (e) => this.handleCurve(e, dot, input)) //Make clicking the dot do curve things //TODOOO: make this also keep track of relations
+            text.innerHTML = GraphType[input.Type] //Set the text of the paragrah to be the type of the input (enum -> text)
+            inputDiv.appendChild(dot)
+            inputDiv.appendChild(text)
+            inputListDiv.appendChild(inputDiv)
+        });
+        bodyDiv.appendChild(inputListDiv) //Add the inputs to the body
+
+        let outputListDiv = document.createElement("div")
+        outputListDiv.classList.add("outputList") //Set class for css
+        bodyDiv.appendChild(outputListDiv)
+        n.Outputs?.forEach(output => {
+            let outputDiv = document.createElement("div")
+            outputDiv.classList.add("output")
+            let dot = document.createElement("div")
+            let text = document.createElement("p")
+            dot.classList.add("typeDot", GraphType[output.Type])  //Set classes for css
+            dot.addEventListener("mousedown", (e) => this.handleCurve(e, dot, output))
+            text.innerHTML = GraphType[output.Type]
+            outputDiv.appendChild(dot)
+            outputDiv.appendChild(text)
+            outputListDiv.appendChild(outputDiv)
+        });
+
+        return nodeDiv;
+    }
 }
 
 class svgCurve {
@@ -228,7 +223,8 @@ class svgCurve {
         this.recalc()
     }
 
-
+    //TODO: Fix issues with start and end being at the same height
+    //TODO: Figure out why moving the start retains the relative spacing of c1 and c2, but mocing end doesn't
 
     setStart(p: point) {
         let oldStart = this.start
@@ -362,13 +358,6 @@ class svgCurve {
             " C " + + " " + this.c2.x + " " + this.c2.y +
             " , " + + " " + this.c2.x + " " + this.c2.y +
             " , " + this.end.x + " " + this.end.y)
-
-
-
-        // return (" M " + this.start.x + " " + this.start.y + //start point
-        //     " Q " + this.c1.x + " " + this.c1.y + //startpoint curve towards
-        //     " , " + center.x + " " + center.y + //center
-        //     " T " + this.end.x + " " + this.end.y)
     }
 
     private onUpdate(curve: svgCurve) {
@@ -435,11 +424,9 @@ class point {
 
 //http://stackoverflow.com/a/3642265/1869660
 function makeSVGElement(tag: string, attrs?: object): SVGElement {
-    var el = document.createElementNS('http://www.w3.org/2000/svg', tag);
-    for (var k in attrs) {
+    let el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for (let k in attrs) {
         el.setAttribute(k, attrs[k]);
     }
     return el;
 }
-
-

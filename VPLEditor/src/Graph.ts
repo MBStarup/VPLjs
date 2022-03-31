@@ -4,10 +4,12 @@ class Graph {
 }
 
 class GraphNode {
+    Name: string;
     Inputs: GraphPlug[];
     Outputs: GraphPlug[];
 
-    constructor(ins: GraphPlug[], outs: GraphPlug[]) {
+    constructor(name: string, ins: GraphPlug[], outs: GraphPlug[]) {
+        this.Name = name;
         this.Inputs = ins;
         this.Outputs = outs;
     }

@@ -4,7 +4,8 @@ var Graph = /** @class */ (function () {
     return Graph;
 }());
 var GraphNode = /** @class */ (function () {
-    function GraphNode(ins, outs) {
+    function GraphNode(name, ins, outs) {
+        this.Name = name;
         this.Inputs = ins;
         this.Outputs = outs;
     }
@@ -51,58 +52,10 @@ var GraphEditor = /** @class */ (function () {
     }
     GraphEditor.prototype.spawnNode = function (e) {
         e.preventDefault();
-        var n = new GraphNode([new GraphPlug(GraphType.Num), new GraphPlug(GraphType.Text), new GraphPlug(GraphType.Emoji)], [new GraphPlug(GraphType.Num), new GraphPlug(GraphType.Time)]);
-        this.nodes.push(new Pair(n, [e.clientX, e.clientY]));
-        var div = this.RenderNode(n, [e.clientX, e.clientY]);
-        //div.addEventListener("click", (e) => { div.style.backgroundColor = "#00ffff" });
-        //div.addEventListener("drag")
-    };
-    GraphEditor.prototype.RenderNode = function (n, p) {
-        var _this = this;
-        var _a, _b;
-        var nodeDiv = document.createElement("div");
-        nodeDiv.classList.add("node");
-        nodeDiv.setAttribute("style", "top: " + p[1].toString() + "px; left: " + p[0].toString() + "px");
-        var headerDiv = document.createElement("div");
-        headerDiv.classList.add("header");
-        headerDiv.innerText = "HEADER";
-        headerDiv.addEventListener("mousedown", function (e) { return _this.dragNode(e, nodeDiv); });
-        var bodyDiv = document.createElement("div");
-        bodyDiv.classList.add("body");
-        nodeDiv.appendChild(headerDiv);
-        nodeDiv.appendChild(bodyDiv);
-        var inputListDiv = document.createElement("div");
-        inputListDiv.classList.add("inputList");
-        bodyDiv.appendChild(inputListDiv);
-        (_a = n.Inputs) === null || _a === void 0 ? void 0 : _a.forEach(function (input) {
-            var inputDiv = document.createElement("div");
-            inputDiv.classList.add("input");
-            var elem = document.createElement("div");
-            var text = document.createElement("p");
-            elem.classList.add("typeDot", GraphType[input.Type]);
-            elem.addEventListener("mousedown", function (e) { return _this.handleCurve(e, elem, input); });
-            text.innerHTML = GraphType[input.Type];
-            inputDiv.appendChild(elem);
-            inputDiv.appendChild(text);
-            inputListDiv.appendChild(inputDiv);
-        });
-        var outputListDiv = document.createElement("div");
-        outputListDiv.classList.add("outputList");
-        bodyDiv.appendChild(outputListDiv);
-        (_b = n.Outputs) === null || _b === void 0 ? void 0 : _b.forEach(function (output) {
-            var outputDiv = document.createElement("div");
-            outputDiv.classList.add("output");
-            var elem = document.createElement("div");
-            var text = document.createElement("p");
-            elem.classList.add("typeDot", GraphType[output.Type]);
-            elem.addEventListener("mousedown", function (e) { return _this.handleCurve(e, elem, output); });
-            text.innerHTML = GraphType[output.Type];
-            outputDiv.appendChild(elem);
-            outputDiv.appendChild(text);
-            outputListDiv.appendChild(outputDiv);
-        });
+        var n = new GraphNode("TestNode", [new GraphPlug(GraphType.Num), new GraphPlug(GraphType.Text), new GraphPlug(GraphType.Emoji)], [new GraphPlug(GraphType.Num), new GraphPlug(GraphType.Time)]);
+        var nodeDiv = this.makeNodeElement(n);
+        nodeDiv.setAttribute("style", "top: " + e.clientY.toString() + "px; left: " + e.clientX.toString() + "px");
         this.container.appendChild(nodeDiv);
-        return nodeDiv;
     };
     GraphEditor.prototype.handleCurve = function (e, div, plug) {
         var _this = this;
@@ -110,11 +63,7 @@ var GraphEditor = /** @class */ (function () {
         var start = new point(e.clientX, e.clientY);
         var end = new point(e.clientX, e.clientY);
         var curveSVG = makeSVGElement("path", { "fill": "none", "stroke": "red", "stroke-width": 3 });
-        //let scaler = 1.5;
         var center = point.add(start, end).multiply(1 / 2);
-        //let inverseSlope = (start.x - e.clientX) / (e.clientY - start.y)
-        //let a1 = ((start.y + center.y) / 2) - (((start.x + center.x) / 2) * inverseSlope)
-        //let p1 = new point(((start.x + center.x) / 2) + scaler, ((start.y + center.y) / 2) + inverseSlope * scaler + a1)
         var p1 = new point(center.x, start.y);
         var p2 = new point(center.x, end.y);
         var curve = new svgCurve(curveSVG, start, end);
@@ -198,6 +147,53 @@ var GraphEditor = /** @class */ (function () {
             node.style.zIndex = null;
         }
     };
+    GraphEditor.prototype.makeNodeElement = function (n) {
+        var _this = this;
+        var _a, _b;
+        var nodeDiv = document.createElement("div"); //Make the outer div
+        nodeDiv.classList.add("node"); //Set the class for the css
+        var headerDiv = document.createElement("div"); //Make the header of the node (Where the name is written)
+        headerDiv.classList.add("header"); //Set class for css
+        var headerText = document.createElement("p");
+        headerText.innerText = n.Name; //Set the text in the header  
+        headerDiv.appendChild(headerText);
+        headerDiv.addEventListener("mousedown", function (e) { return _this.dragNode(e, nodeDiv); }); //Make it draggable
+        nodeDiv.appendChild(headerDiv); //Add the header to the outer div
+        var bodyDiv = document.createElement("div"); // make the body of the node (Where the inputs and outputs go)
+        bodyDiv.classList.add("body"); //Set class for css
+        nodeDiv.appendChild(bodyDiv); //Add the body to the outer div
+        var inputListDiv = document.createElement("div"); //Create the container for the inputs
+        inputListDiv.classList.add("inputList"); //Set class for css
+        (_a = n.Inputs) === null || _a === void 0 ? void 0 : _a.forEach(function (input) {
+            var inputDiv = document.createElement("div");
+            inputDiv.classList.add("input"); //Set class for css
+            var dot = document.createElement("div"); //Make a div for the dot
+            var text = document.createElement("p"); //Make a paragraph for the name of the input
+            dot.classList.add("typeDot", GraphType[input.Type]); //Set classes for css
+            dot.addEventListener("mousedown", function (e) { return _this.handleCurve(e, dot, input); }); //Make clicking the dot do curve things //TODOOO: make this also keep track of relations
+            text.innerHTML = GraphType[input.Type]; //Set the text of the paragrah to be the type of the input (enum -> text)
+            inputDiv.appendChild(dot);
+            inputDiv.appendChild(text);
+            inputListDiv.appendChild(inputDiv);
+        });
+        bodyDiv.appendChild(inputListDiv); //Add the inputs to the body
+        var outputListDiv = document.createElement("div");
+        outputListDiv.classList.add("outputList"); //Set class for css
+        bodyDiv.appendChild(outputListDiv);
+        (_b = n.Outputs) === null || _b === void 0 ? void 0 : _b.forEach(function (output) {
+            var outputDiv = document.createElement("div");
+            outputDiv.classList.add("output");
+            var dot = document.createElement("div");
+            var text = document.createElement("p");
+            dot.classList.add("typeDot", GraphType[output.Type]); //Set classes for css
+            dot.addEventListener("mousedown", function (e) { return _this.handleCurve(e, dot, output); });
+            text.innerHTML = GraphType[output.Type];
+            outputDiv.appendChild(dot);
+            outputDiv.appendChild(text);
+            outputListDiv.appendChild(outputDiv);
+        });
+        return nodeDiv;
+    };
     return GraphEditor;
 }());
 var svgCurve = /** @class */ (function () {
@@ -211,6 +207,8 @@ var svgCurve = /** @class */ (function () {
         this.c2 = new point((this.end.x + this.center.x) / 2, this.end.y);
         this.recalc();
     }
+    //TODO: Fix issues with start and end being at the same height
+    //TODO: Figure out why moving the start retains the relative spacing of c1 and c2, but mocing end doesn't
     svgCurve.prototype.setStart = function (p) {
         var oldStart = this.start;
         this.start = p;
@@ -310,10 +308,6 @@ var svgCurve = /** @class */ (function () {
             " C " + +" " + this.c2.x + " " + this.c2.y +
             " , " + +" " + this.c2.x + " " + this.c2.y +
             " , " + this.end.x + " " + this.end.y);
-        // return (" M " + this.start.x + " " + this.start.y + //start point
-        //     " Q " + this.c1.x + " " + this.c1.y + //startpoint curve towards
-        //     " , " + center.x + " " + center.y + //center
-        //     " T " + this.end.x + " " + this.end.y)
     };
     svgCurve.prototype.onUpdate = function (curve) {
         var _this = this;

@@ -19,7 +19,7 @@ function node_SendMessage(inputs: { text: string, channel: channel }): void {
     //todo: implement this via discord.js
 }
 
-function node_OnSlashCommand(inputs: { trigger: string, action: (data: slashCommandData) => void }): void {
+function node_OnSlashCommand(inputs: { trigger: string, next: (data: slashCommandData) => void }): void {
     //todo: implement this via discord.js
 }
 

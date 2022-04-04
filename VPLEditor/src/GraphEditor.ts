@@ -58,17 +58,7 @@ class svgCurve {
             this.c2.y = (((this.c2.y - oldStart.y) / (this.end.y - oldStart.y)) * (this.end.y - this.start.y) + this.start.y)
         }
 
-        if (this.start.y < this.end.y && this.start.x < this.end.x) {
-            this.c1.y = Math.min(this.c1.y, this.start.y)
-            this.c2.y = Math.max(this.c2.y, this.end.y)
-        } else {
-            this.c1.y = Math.max(this.c1.y, this.start.y)
-            this.c2.y = Math.min(this.c2.y, this.end.y)
-        }
-
-        this.c1.x = Math.max(this.c1.x, this.start.x)
-        this.c2.x = Math.min(this.c2.x, this.end.x)
-
+        this.restrictControlPoints()
         this.recalc()
     }
 
@@ -77,14 +67,7 @@ class svgCurve {
 
         this.c1.x = Math.max(this.c1.x, this.start.x)
 
-        if (this.start.y < this.end.y && this.start.x < this.end.x) {
-            this.c1.y = Math.min(this.c1.y, this.start.y)
-            this.c2.y = Math.max(this.c2.y, this.end.y)
-        } else {
-            this.c1.y = Math.max(this.c1.y, this.start.y)
-            this.c2.y = Math.min(this.c2.y, this.end.y)
-        }
-
+        this.restrictControlPoints()
         this.recalc()
     }
 
@@ -93,15 +76,7 @@ class svgCurve {
 
         this.c2.x = Math.min(this.c2.x, this.end.x)
 
-        if (this.start.y < this.end.y && this.start.x < this.end.x) {
-
-            this.c1.y = Math.min(this.c1.y, this.start.y)
-            this.c2.y = Math.max(this.c2.y, this.end.y)
-        } else {
-            this.c1.y = Math.max(this.c1.y, this.start.y)
-            this.c2.y = Math.min(this.c2.y, this.end.y)
-        }
-
+        this.restrictControlPoints()
         this.recalc()
     }
 
@@ -115,8 +90,13 @@ class svgCurve {
         this.c2.x = (((this.c2.x - this.start.x) / (oldEnd.x - this.start.x)) * (this.end.x - this.start.x) + this.start.x)
         this.c2.y = (((this.c2.y - this.start.y) / (oldEnd.x - this.start.y)) * (this.end.y - this.start.y) + this.start.y)
 
-        if (this.start.y < this.end.y && this.start.x < this.end.x) {
 
+        this.restrictControlPoints()
+        this.recalc()
+    }
+
+    restrictControlPoints() {
+        if (this.start.y < this.end.y && this.start.x < this.end.x) {
             this.c1.y = Math.min(this.c1.y, this.start.y)
             this.c2.y = Math.max(this.c2.y, this.end.y)
         } else {
@@ -124,7 +104,10 @@ class svgCurve {
             this.c2.y = Math.min(this.c2.y, this.end.y)
         }
 
-        this.recalc()
+
+        let leftRightBuffer = 10
+        this.c1.x = Math.max(this.c1.x, this.start.x + leftRightBuffer)
+        this.c2.x = Math.min(this.c2.x, this.end.x - leftRightBuffer)
     }
 
     getStart(): point {
@@ -291,6 +274,25 @@ class GraphEditorNode {
             oldY = e.clientY;
 
             node.setPosition(new point((node.div.offsetLeft - newX), (node.div.offsetTop - newY)))
+
+            node.Inputs.forEach(p => {
+                if (p.Connection != null) {
+                    let rect = p.Div.getBoundingClientRect()
+                    let pos = new point(rect.x + rect.width / 2, rect.y + rect.height / 2)
+
+                    p.Curve.setEnd(pos)
+                }
+            })
+
+
+            node.Outputs.forEach(p => {
+                if (p.Connection != null) {
+                    let rect = p.Div.getBoundingClientRect()
+                    let pos = new point(rect.x + rect.width / 2, rect.y + rect.height / 2)
+
+                    p.Curve.setStart(pos)
+                }
+            })
         }
 
         function stopDragNode(e: MouseEvent) {
@@ -361,6 +363,8 @@ class Plug {
     Type: GraphType
     ParentNode: GraphEditorNode
     Name: string
+    Div: PlugDiv
+    Curve: svgCurve
 
     constructor(type: GraphType, Name?: string) {
         this.Type = type
@@ -370,7 +374,7 @@ class Plug {
 
 class InPlug extends Plug {
     HasField: boolean
-    Connection: GraphPlug
+    Connection: Plug
 
     constructor(type: GraphType, Name?: string, HasField?: boolean) {
         super(type, Name);
@@ -379,7 +383,7 @@ class InPlug extends Plug {
 }
 
 class OutPlug extends Plug {
-    Connection: GraphPlug
+    Connection: Plug
 }
 
 function handleCurve(e: MouseEvent, div: HTMLDivElement, plug: OutPlug) {
@@ -438,10 +442,17 @@ function handleCurve(e: MouseEvent, div: HTMLDivElement, plug: OutPlug) {
             return
         }
 
-        console.log(targetPlug.plug)
-        console.log(targetPlug.plug.ParentNode)
-
         //Associate the plug with the curve
+
+        let inPlug = targetPlug.plug as InPlug
+        inPlug.Connection = plug
+        plug.Connection = inPlug
+
+        inPlug.Curve = curve
+        plug.Curve = curve
+
+        inPlug.Div = targetPlug
+        plug.Div = div as PlugDiv
 
 
 

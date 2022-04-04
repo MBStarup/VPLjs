@@ -95,42 +95,19 @@ var svgCurve = /** @class */ (function () {
             this.c2.x = (((this.c2.x - oldStart.x) / (this.end.x - oldStart.x)) * (this.end.x - this.start.x) + this.start.x);
             this.c2.y = (((this.c2.y - oldStart.y) / (this.end.y - oldStart.y)) * (this.end.y - this.start.y) + this.start.y);
         }
-        if (this.start.y < this.end.y && this.start.x < this.end.x) {
-            this.c1.y = Math.min(this.c1.y, this.start.y);
-            this.c2.y = Math.max(this.c2.y, this.end.y);
-        }
-        else {
-            this.c1.y = Math.max(this.c1.y, this.start.y);
-            this.c2.y = Math.min(this.c2.y, this.end.y);
-        }
-        this.c1.x = Math.max(this.c1.x, this.start.x);
-        this.c2.x = Math.min(this.c2.x, this.end.x);
+        this.restrictControlPoints();
         this.recalc();
     };
     svgCurve.prototype.setC1 = function (p) {
         this.c1 = p;
         this.c1.x = Math.max(this.c1.x, this.start.x);
-        if (this.start.y < this.end.y && this.start.x < this.end.x) {
-            this.c1.y = Math.min(this.c1.y, this.start.y);
-            this.c2.y = Math.max(this.c2.y, this.end.y);
-        }
-        else {
-            this.c1.y = Math.max(this.c1.y, this.start.y);
-            this.c2.y = Math.min(this.c2.y, this.end.y);
-        }
+        this.restrictControlPoints();
         this.recalc();
     };
     svgCurve.prototype.setC2 = function (p) {
         this.c2 = p;
         this.c2.x = Math.min(this.c2.x, this.end.x);
-        if (this.start.y < this.end.y && this.start.x < this.end.x) {
-            this.c1.y = Math.min(this.c1.y, this.start.y);
-            this.c2.y = Math.max(this.c2.y, this.end.y);
-        }
-        else {
-            this.c1.y = Math.max(this.c1.y, this.start.y);
-            this.c2.y = Math.min(this.c2.y, this.end.y);
-        }
+        this.restrictControlPoints();
         this.recalc();
     };
     svgCurve.prototype.setEnd = function (p) {
@@ -140,6 +117,10 @@ var svgCurve = /** @class */ (function () {
         this.c1.y = (((this.c1.y - this.start.y) / (oldEnd.x - this.start.y)) * (this.end.y - this.start.y) + this.start.y);
         this.c2.x = (((this.c2.x - this.start.x) / (oldEnd.x - this.start.x)) * (this.end.x - this.start.x) + this.start.x);
         this.c2.y = (((this.c2.y - this.start.y) / (oldEnd.x - this.start.y)) * (this.end.y - this.start.y) + this.start.y);
+        this.restrictControlPoints();
+        this.recalc();
+    };
+    svgCurve.prototype.restrictControlPoints = function () {
         if (this.start.y < this.end.y && this.start.x < this.end.x) {
             this.c1.y = Math.min(this.c1.y, this.start.y);
             this.c2.y = Math.max(this.c2.y, this.end.y);
@@ -148,7 +129,9 @@ var svgCurve = /** @class */ (function () {
             this.c1.y = Math.max(this.c1.y, this.start.y);
             this.c2.y = Math.min(this.c2.y, this.end.y);
         }
-        this.recalc();
+        var leftRightBuffer = 10;
+        this.c1.x = Math.max(this.c1.x, this.start.x + leftRightBuffer);
+        this.c2.x = Math.min(this.c2.x, this.end.x - leftRightBuffer);
     };
     svgCurve.prototype.getStart = function () {
         return (this.start);
@@ -266,6 +249,20 @@ var GraphEditorNode = /** @class */ (function () {
             oldX = e.clientX;
             oldY = e.clientY;
             node.setPosition(new point((node.div.offsetLeft - newX), (node.div.offsetTop - newY)));
+            node.Inputs.forEach(function (p) {
+                if (p.Connection != null) {
+                    var rect = p.Div.getBoundingClientRect();
+                    var pos = new point(rect.x + rect.width / 2, rect.y + rect.height / 2);
+                    p.Curve.setEnd(pos);
+                }
+            });
+            node.Outputs.forEach(function (p) {
+                if (p.Connection != null) {
+                    var rect = p.Div.getBoundingClientRect();
+                    var pos = new point(rect.x + rect.width / 2, rect.y + rect.height / 2);
+                    p.Curve.setStart(pos);
+                }
+            });
         }
         function stopDragNode(e) {
             document.removeEventListener("mouseup", stopDragNode);
@@ -387,9 +384,14 @@ function handleCurve(e, div, plug) {
             curveSVG.remove();
             return;
         }
-        console.log(targetPlug.plug);
-        console.log(targetPlug.plug.ParentNode);
         //Associate the plug with the curve
+        var inPlug = targetPlug.plug;
+        inPlug.Connection = plug;
+        plug.Connection = inPlug;
+        inPlug.Curve = curve;
+        plug.Curve = curve;
+        inPlug.Div = targetPlug;
+        plug.Div = div;
         var dots = [
             { setter: curve.setStart.bind(curve), getter: curve.getStart.bind(curve), element: makeSVGElement("circle", { "fill": "orange", "r": 5, "pointer-events": "all" }) },
             { setter: curve.setC1.bind(curve), getter: curve.getC1.bind(curve), element: makeSVGElement("circle", { "fill": "yellow", "r": 5, "pointer-events": "all" }) },

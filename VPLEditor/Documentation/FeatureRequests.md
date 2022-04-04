@@ -6,6 +6,11 @@
 
 <h1>EDITOR</h1>
 
+**Bugs**
+
+- Division by zero when points are aligned
+
+___
 **Propably Should Have**
 
 - Pan and zoom

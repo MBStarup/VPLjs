@@ -285,13 +285,13 @@ class GraphEditorNode {
             })
 
 
-            node.Outputs.forEach(p => {
-                if (p.Connection != null) {
-                    let rect = p.Div.getBoundingClientRect()
+            node.Outputs.forEach(srcPlug => {
+                srcPlug.Connections.forEach(destPlug => {
+                    let rect = srcPlug.Div.getBoundingClientRect()
                     let pos = new point(rect.x + rect.width / 2, rect.y + rect.height / 2)
 
-                    p.Curve.setStart(pos)
-                }
+                    destPlug.Curve.setStart(pos)
+                });
             })
         }
 
@@ -374,7 +374,7 @@ class Plug {
 
 class InPlug extends Plug {
     HasField: boolean
-    Connection: Plug
+    Connection: OutPlug = null
 
     constructor(type: GraphType, Name?: string, HasField?: boolean) {
         super(type, Name);
@@ -383,7 +383,7 @@ class InPlug extends Plug {
 }
 
 class OutPlug extends Plug {
-    Connection: Plug
+    Connections: InPlug[] = []
 }
 
 function handleCurve(e: MouseEvent, div: HTMLDivElement, plug: OutPlug) {
@@ -446,7 +446,7 @@ function handleCurve(e: MouseEvent, div: HTMLDivElement, plug: OutPlug) {
 
         let inPlug = targetPlug.plug as InPlug
         inPlug.Connection = plug
-        plug.Connection = inPlug
+        plug.Connections.push(inPlug)
 
         inPlug.Curve = curve
         plug.Curve = curve

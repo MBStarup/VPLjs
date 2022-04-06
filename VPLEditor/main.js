@@ -256,12 +256,12 @@ var GraphEditorNode = /** @class */ (function () {
                     p.Curve.setEnd(pos);
                 }
             });
-            node.Outputs.forEach(function (p) {
-                if (p.Connection != null) {
-                    var rect = p.Div.getBoundingClientRect();
+            node.Outputs.forEach(function (srcPlug) {
+                srcPlug.Connections.forEach(function (destPlug) {
+                    var rect = srcPlug.Div.getBoundingClientRect();
                     var pos = new point(rect.x + rect.width / 2, rect.y + rect.height / 2);
-                    p.Curve.setStart(pos);
-                }
+                    destPlug.Curve.setStart(pos);
+                });
             });
         }
         function stopDragNode(e) {
@@ -333,6 +333,7 @@ var InPlug = /** @class */ (function (_super) {
     __extends(InPlug, _super);
     function InPlug(type, Name, HasField) {
         var _this = _super.call(this, type, Name) || this;
+        _this.Connection = null;
         _this.HasField = HasField !== null && HasField !== void 0 ? HasField : false;
         return _this;
     }
@@ -341,7 +342,9 @@ var InPlug = /** @class */ (function (_super) {
 var OutPlug = /** @class */ (function (_super) {
     __extends(OutPlug, _super);
     function OutPlug() {
-        return _super !== null && _super.apply(this, arguments) || this;
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        _this.Connections = [];
+        return _this;
     }
     return OutPlug;
 }(Plug));
@@ -387,7 +390,7 @@ function handleCurve(e, div, plug) {
         //Associate the plug with the curve
         var inPlug = targetPlug.plug;
         inPlug.Connection = plug;
-        plug.Connection = inPlug;
+        plug.Connections.push(inPlug);
         inPlug.Curve = curve;
         plug.Curve = curve;
         inPlug.Div = targetPlug;

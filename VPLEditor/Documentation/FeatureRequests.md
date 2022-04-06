@@ -6,6 +6,11 @@
 
 <h1>EDITOR</h1>
 
+**To-Do**
+
+- Only one entrance (cleanup)
+
+___
 **Bugs**
 
 - Division by zero when points are aligned

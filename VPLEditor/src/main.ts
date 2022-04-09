@@ -1,15 +1,14 @@
 /// <reference path="GraphEditor.ts" />
 
+let windowSize = new point(document.body.clientWidth, document.body.clientHeight)
+
 let container = document.getElementById('container') as HTMLDivElement;
-container.style.width = document.body.clientWidth.toString() + "px"
-container.style.height = document.body.clientHeight.toString() + "px"
+setSize(container, windowSize)
 
 let bg = document.getElementById('bg') as HTMLDivElement;
-bg.style.width = document.body.clientWidth.toString() + "px"
-bg.style.height = document.body.clientHeight.toString() + "px"
+setSize(bg, windowSize)
 
 let svgContainer = document.getElementById('svgContainer') as unknown as SVGElement;
-svgContainer.style.width = document.body.clientWidth.toString() + "px"
-svgContainer.style.height = document.body.clientHeight.toString() + "px"
+setSize(svgContainer, windowSize)
 
 let e = new GraphEditor(container, bg, svgContainer, new Graph());

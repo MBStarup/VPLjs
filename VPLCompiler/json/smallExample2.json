@@ -3,7 +3,7 @@
         {
             "id": 0,
             "name": "OnSlashCommand",
-            "type": "Event",
+            "type": "EventNode",
             "inputs": {
                 "data": [
                     {

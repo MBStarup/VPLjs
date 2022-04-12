@@ -218,3 +218,20 @@ function setSize(e: HTMLElement | SVGElement, p: point) {
     e.style.width = p.x.toString() + "px"
     e.style.height = p.y.toString() + "px"
 }
+
+//https://stackoverflow.com/a/30832210/
+function download(data, filename, type) {
+    var file = new Blob([data], { type: type });
+
+    let a = document.createElement("a")
+    let url = URL.createObjectURL(file);
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () {
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+    }, 0);
+
+}

@@ -28,15 +28,31 @@ abstract class VPL_Plug extends HTMLElement {
 
 
 class VPL_Node extends HTMLElement {
-    private pos: point
+    VPL_Node_Type(): string {
+        if (this instanceof ActionNode)
+            return "ActionNode"
+
+        if (this.IsEvent)
+            return "EventNode"
+
+        return "DataNode"
+    }
+
+    protected pos: point
+
+    header: HTMLDivElement //TODO: maybe expose the other htmlelements as members too?
 
     Name: string
     Inputs: InPlug[]
     Outputs: OutPlug[]
     Actions: ActionPlug[]
+    ID: number
+    IsEvent: boolean
 
-    constructor(Name: string, Actions: ActionPlug[], Inputs: InPlug[], Outputs: OutPlug[], position: point) {
+    constructor(Name: string, Actions: ActionPlug[], Inputs: InPlug[], Outputs: OutPlug[], position: point, id: number, isEvent?: boolean) {
         super()
+        this.IsEvent = isEvent ?? false
+        this.ID = id
         this.Name = Name
         this.Actions = Actions
         this.Inputs = Inputs
@@ -49,8 +65,9 @@ class VPL_Node extends HTMLElement {
         let headerText = document.createElement("p")
         headerText.innerText = Name;
         headerDiv.appendChild(headerText)
-        headerDiv.addEventListener("mousedown", (e) => this.dragNode(e, this)) //Make it draggable
+        headerDiv.addEventListener("mousedown", (e) => this.boundDragNode(e))
         this.appendChild(headerDiv)
+        this.header = headerDiv
 
         let bodyDiv = document.createElement("div")
         bodyDiv.classList.add("body")
@@ -107,6 +124,7 @@ class VPL_Node extends HTMLElement {
             outputListDiv.appendChild(outputDiv)
         });
 
+
     }
 
     setPosition(p: point): void {
@@ -118,70 +136,71 @@ class VPL_Node extends HTMLElement {
         return this.pos
     }
 
+    protected oldPos: point //TODO: don't like this being a member fo the class, but it's needed in multiple funcitons... Maybe make it a parameter? But then I'd need wrappers because they're events. WHat to do, what to do...
+    protected dragNode() { //https://www.w3schools.com/howto/howto_js_draggable.asp
+        this.style.zIndex = "1";
 
-    dragNode(e: MouseEvent, node: VPL_Node) { //https://www.w3schools.com/howto/howto_js_draggable.asp
-        e.preventDefault()
-
-        let newX;
-        let newY;
-        let oldX = e.pageX;
-        let oldY = e.pageY;
-
-        node.style.zIndex = "1";
-
-        document.addEventListener("mouseup", stopDragNode)
-        document.addEventListener("mousemove", dragMove)
-
-        function dragMove(e: MouseEvent) {
-            newX = oldX - e.pageX;
-            newY = oldY - e.pageY;
-            oldX = e.pageX;
-            oldY = e.pageY;
-
-            node.setPosition(new point((node.offsetLeft - newX), (node.offsetTop - newY)))
-
-            node.Actions.forEach(p => {
-                if (p.Connection != null) {
-                    let rect = p.getBoundingClientRect()
-                    let pos = new point(rect.x + rect.width / 2, rect.y + rect.height / 2)
-
-                    p.Curve.setStart(pos)
-                }
-            })
-
-            node.Inputs.forEach(p => {
-                if (p.Connection != null) {
-                    let rect = p.getBoundingClientRect()
-                    let pos = new point(rect.x + rect.width / 2, rect.y + rect.height / 2)
-
-                    p.Curve.setEnd(pos)
-                }
-            })
-
-
-            node.Outputs.forEach(p => {
-                p.Connections.forEach(destPlug => {
-                    let rect = p.getBoundingClientRect()
-                    let pos = new point(rect.x + rect.width / 2, rect.y + rect.height / 2)
-
-                    destPlug.Curve.setStart(pos)
-                });
-            })
-        }
-
-        function stopDragNode(e: MouseEvent) {
-            document.removeEventListener("mouseup", stopDragNode)
-            document.removeEventListener("mousemove", dragMove)
-            node.style.zIndex = null;
-        }
+        document.addEventListener("mouseup", this.boundStopDragNode)
+        document.addEventListener("mousemove", this.boundDragMove)
     }
 
+    protected dragMove(p: point) {
+        this.oldPos = this.oldPos || p //Short circuit evaluation to assign oldPos to p in case of no previous value
+        let deltaX = this.oldPos.x - p.x;
+        let deltaY = this.oldPos.y - p.y;
+        this.oldPos = p
+
+
+        this.setPosition(new point((this.offsetLeft - deltaX), (this.offsetTop - deltaY)))
+
+        this.Actions.forEach(p => {
+            if (p.Connection != null) {
+                let rect = p.getBoundingClientRect()
+                let pos = new point(rect.x + rect.width / 2, rect.y + rect.height / 2)
+
+                p.Curve.setStart(pos)
+            }
+        })
+
+        this.Inputs.forEach(p => {
+            if (p.Connection != null) {
+                let rect = p.getBoundingClientRect()
+                let pos = new point(rect.x + rect.width / 2, rect.y + rect.height / 2)
+
+                p.Curve.setEnd(pos)
+            }
+        })
+
+
+        this.Outputs.forEach(p => {
+            p.Connections.forEach(destPlug => {
+                let rect = p.getBoundingClientRect()
+                let pos = new point(rect.x + rect.width / 2, rect.y + rect.height / 2)
+
+                destPlug.Curve.setStart(pos)
+            });
+        })
+    }
+
+    protected stopDragNode() {
+        document.removeEventListener("mouseup", this.boundStopDragNode)
+        document.removeEventListener("mousemove", this.boundDragMove)
+        this.style.zIndex = null;
+    }
+
+    private boundDragNode = (e: MouseEvent) => { e.preventDefault(); this.dragNode.bind(this)() }
+    private boundDragMove = (e: MouseEvent) => { e.preventDefault(); this.dragMove.bind(this)(new point(e.pageX, e.pageY)) }
+    private boundStopDragNode = (e: MouseEvent) => { e.preventDefault(); this.stopDragNode.bind(this)() }
+
 }
+
+
 
 class InPlug extends VPL_Plug {
     HasField: boolean
     Type: GraphType
     Connection: OutPlug = null
+    Value: any
 
     constructor(type: GraphType, Name?: string, HasField?: boolean) {
         super();
@@ -212,14 +231,32 @@ class ActionPlug extends VPL_Plug {
 }
 
 class ActionNode extends VPL_Node {
-    Connections: ActionPlug[]
+    Connections: ActionPlug[] = []
     Curve: svgCurve
+
+    constructor(Name: string, Actions: ActionPlug[], Inputs: InPlug[], Outputs: OutPlug[], position: point, id: number, isEvent?: boolean) {
+        super(Name, Actions, Inputs, Outputs, position, id, isEvent)
+        this.classList.add("actionNode")
+    }
+
+    protected dragMove(p: point) {
+        super.dragMove(p)
+
+        this.Connections.forEach(c => {
+            let rect = this.header.getBoundingClientRect()
+            let pos = new point(rect.x + rect.width / 2, rect.y + rect.height / 2)
+
+            c.Curve.setEnd(pos)
+        })
+    }
 }
 
 class GraphEditor {
+    name: string
     container: HTMLElement
     svgContainer: SVGElement
     nodes = []
+    eventNodes = []
     count = 0
 
     constructor(container: HTMLElement, bg: HTMLElement, svgContainer: SVGElement, graph: Graph) {
@@ -229,8 +266,11 @@ class GraphEditor {
         customElements.define('vpl-in-plug', InPlug);
         customElements.define('vpl-out-plug', OutPlug);
         customElements.define('vpl-node', VPL_Node);
+        customElements.define('vpl-action-node', ActionNode);
 
-        bg.addEventListener("click", this.spawnNode.bind(this)) //Don't know how "bind" works, but it makes it so the event fucntion has the instance of GraphEditor as 'this' instead of somehting else
+        bg.addEventListener("click", (e) => {
+            e.preventDefault(); this.spawnNode.bind(this)(new VPL_Node("TestNode" + (this.count++).toString(), [new ActionPlug("Next >>")], [new InPlug(GraphType.Num), new InPlug(GraphType.Text, "wow"), new InPlug(GraphType.Emoji), new InPlug(GraphType.Time)], [new OutPlug(GraphType.Num), new OutPlug(GraphType.Time), new OutPlug(GraphType.Text)], new point(e.pageX, e.pageY), this.count))
+        }) //Don't know how "bind" works, but it makes it so the event fucntion has the instance of GraphEditor as 'this' instead of somehting else
         this.container = container;
         this.svgContainer = svgContainer;
 
@@ -241,16 +281,45 @@ class GraphEditor {
             setSize(bg, editorSize)
             setSize(svgContainer, editorSize)
         })
+
+        document.addEventListener("keyup", (e) => {
+            e.preventDefault();
+            if (e.key === 'Enter') {
+                download(this.jsonTranspile(), `${this.name}.json`, 'text/json')
+            }
+        });
     }
 
-    spawnNode(e: MouseEvent) {
-        ++this.count
-        e.preventDefault()
-        let myGraphEditorNode = new VPL_Node("TestNode" + this.count.toString(), [new ActionPlug("Next >>")], [new InPlug(GraphType.Num), new InPlug(GraphType.Text, "wow"), new InPlug(GraphType.Emoji), new InPlug(GraphType.Time)], [new OutPlug(GraphType.Num), new OutPlug(GraphType.Time), new OutPlug(GraphType.Text)], new point(e.pageX, e.pageY))
-        this.container.appendChild(myGraphEditorNode)
-        this.nodes.push(myGraphEditorNode)
+    spawnNode(n: VPL_Node) {
+        this.container.appendChild(n)
+        this.nodes.push(n)
     }
 
+
+    jsonTranspile(): string {
+        let res: string = '{ "nodes": [ '
+
+        this.eventNodes.forEach((n: VPL_Node) => {
+            `{
+                "id": ${n.ID},
+                "name": "${n.Name}",
+                "type": "${n.VPL_Node_Type()}",
+                "inputs":  { 
+                    "data": [
+                    ${n.Inputs.map((a) => `{
+                        "name": "${a.Name}",
+                        "type": "${GraphType[a.Type]}",
+                        "valueIsPath": ${!a.HasField},
+                        "value": "${a.HasField ? a.Value.toString() : `{
+                            "node": ${a.Connection.ParentNode.ID},
+                            "plug": "${a.Connection.Name}"
+                        }`}", //TODO: find a good way to do this for non strings
+                    }`)}
+                ],
+            }`})
+
+        return res + ' ] }'
+    }
 
 }
 
@@ -385,6 +454,7 @@ function beginConnection(e: MouseEvent, fromPlug: VPL_Plug) {
             target.Curve = curve
             fromPlug.Curve = curve
             addDots(curve)
+            target.classList.add("actionConnected")
         }
 
         document.addEventListener("mousemove", dragConnection)
@@ -397,10 +467,10 @@ function beginConnection(e: MouseEvent, fromPlug: VPL_Plug) {
 
     function addDots(curve: svgCurve) {
         let dots: { setter: (p: point) => void, getter: () => point, element: SVGElement }[] = [
-            { setter: curve.setStart.bind(curve), getter: curve.getStart.bind(curve), element: makeSVGElement("circle", { "fill": "orange", "r": 5, "pointer-events": "all" }) },
-            { setter: curve.setStartControl.bind(curve), getter: curve.getC1.bind(curve), element: makeSVGElement("circle", { "fill": "yellow", "r": 5, "pointer-events": "all" }) },
-            { setter: curve.setEndControl.bind(curve), getter: curve.getC2.bind(curve), element: makeSVGElement("circle", { "fill": "blue", "r": 5, "pointer-events": "all" }) },
-            { setter: curve.setEnd.bind(curve), getter: curve.getEnd.bind(curve), element: makeSVGElement("circle", { "fill": "purple", "r": 5, "pointer-events": "all" }) }]
+            { setter: curve.setStart.bind(curve), getter: curve.getStart.bind(curve), element: makeSVGElement("circle", { "fill": "yellow", "r": 5, "pointer-events": "all" }) },
+            { setter: curve.setStartControl.bind(curve), getter: curve.getC1.bind(curve), element: makeSVGElement("circle", { "fill": "orange", "r": 5, "pointer-events": "all" }) },
+            { setter: curve.setEndControl.bind(curve), getter: curve.getC2.bind(curve), element: makeSVGElement("circle", { "fill": "purple", "r": 5, "pointer-events": "all" }) },
+            { setter: curve.setEnd.bind(curve), getter: curve.getEnd.bind(curve), element: makeSVGElement("circle", { "fill": "blue", "r": 5, "pointer-events": "all" }) }]
         curve.addEvent("updateshit", (curve) => {
             dots.forEach(dot => {
                 dot.element.setAttribute("cx", dot.getter().x.toString())

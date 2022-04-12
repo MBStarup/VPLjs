@@ -23,7 +23,8 @@ function setType(string, type) {
 
 function buildFile() { //Todo: parameterize and shit
     //let importSet = new Set()
-    let file = recFillParams(graph, graph.nodes[0])
+    let file = graph.nodes.filter(n => n.type === "EventNode").map(n => recFillParams(graph, n)).reduce((prev, curr) => prev + curr)
+
 
     //return ((Array.from(importSet)).reduce((res, func) => { return res += `import { ${func} } from "..\\\\tempFunctions.js;"\n`})) + file
 
@@ -38,7 +39,7 @@ function buildFile() { //Todo: parameterize and shit
                 result += setType(data.value, data.type) + ","
             } else {
                 let nextNode = graph.nodes.find((n) => { return n.id === data.value.node })
-                if (nextNode.type === "Event") {
+                if (nextNode.type === "EventNode") {
                     result += `${nextNode.name}_data.${data.value.plug},`
                 } else {
                     result += `${recFillParams(graph, nextNode)}.${data.value.plug},`
@@ -48,7 +49,7 @@ function buildFile() { //Todo: parameterize and shit
         node.inputs.actions.forEach(action => {
             result += action.name + ":"
             let signature = "()"
-            if (node.type === "Event") {
+            if (node.type === "EventNode") {
                 signature = `(${node.name}_data)`
             }
             if (!action.valueIsPath) {

@@ -20,6 +20,15 @@
     position: absolute;
 }
 
+.actionNode > .header {
+    border-bottom: 0.3rem solid #00ff0d;
+}
+
+.actionConnected > .header {
+    border: 0.3rem solid #00ff0d;
+}
+
+
 .header {
     cursor: grab;
     width: 100%;

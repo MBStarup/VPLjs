@@ -152,6 +152,20 @@ function setSize(e, p) {
     e.style.width = p.x.toString() + "px";
     e.style.height = p.y.toString() + "px";
 }
+//https://stackoverflow.com/a/30832210/
+function download(data, filename, type) {
+    var file = new Blob([data], { type: type });
+    let a = document.createElement("a");
+    let url = URL.createObjectURL(file);
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () {
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+    }, 0);
+}
 /// <reference path="Stuff.ts" />
 class Graph {
 }
@@ -174,8 +188,13 @@ class VPL_Plug extends HTMLElement {
     }
 }
 class VPL_Node extends HTMLElement {
-    constructor(Name, Actions, Inputs, Outputs, position) {
+    constructor(Name, Actions, Inputs, Outputs, position, id, isEvent) {
         super();
+        this.boundDragNode = (e) => { e.preventDefault(); this.dragNode.bind(this)(); };
+        this.boundDragMove = (e) => { e.preventDefault(); this.dragMove.bind(this)(new point(e.pageX, e.pageY)); };
+        this.boundStopDragNode = (e) => { e.preventDefault(); this.stopDragNode.bind(this)(); };
+        this.IsEvent = isEvent !== null && isEvent !== void 0 ? isEvent : false;
+        this.ID = id;
         this.Name = Name;
         this.Actions = Actions;
         this.Inputs = Inputs;
@@ -187,8 +206,9 @@ class VPL_Node extends HTMLElement {
         let headerText = document.createElement("p");
         headerText.innerText = Name;
         headerDiv.appendChild(headerText);
-        headerDiv.addEventListener("mousedown", (e) => this.dragNode(e, this)); //Make it draggable
+        headerDiv.addEventListener("mousedown", (e) => this.boundDragNode(e));
         this.appendChild(headerDiv);
+        this.header = headerDiv;
         let bodyDiv = document.createElement("div");
         bodyDiv.classList.add("body");
         this.appendChild(bodyDiv);
@@ -235,6 +255,13 @@ class VPL_Node extends HTMLElement {
             outputListDiv.appendChild(outputDiv);
         });
     }
+    VPL_Node_Type() {
+        if (this instanceof ActionNode)
+            return "ActionNode";
+        if (this.IsEvent)
+            return "EventNode";
+        return "DataNode";
+    }
     setPosition(p) {
         this.pos = p;
         this.setAttribute("style", "left: " + this.pos.x.toString() + "px;" + "top: " + this.pos.y.toString() + "px;");
@@ -242,48 +269,43 @@ class VPL_Node extends HTMLElement {
     getPosition() {
         return this.pos;
     }
-    dragNode(e, node) {
-        e.preventDefault();
-        let newX;
-        let newY;
-        let oldX = e.pageX;
-        let oldY = e.pageY;
-        node.style.zIndex = "1";
-        document.addEventListener("mouseup", stopDragNode);
-        document.addEventListener("mousemove", dragMove);
-        function dragMove(e) {
-            newX = oldX - e.pageX;
-            newY = oldY - e.pageY;
-            oldX = e.pageX;
-            oldY = e.pageY;
-            node.setPosition(new point((node.offsetLeft - newX), (node.offsetTop - newY)));
-            node.Actions.forEach(p => {
-                if (p.Connection != null) {
-                    let rect = p.getBoundingClientRect();
-                    let pos = new point(rect.x + rect.width / 2, rect.y + rect.height / 2);
-                    p.Curve.setStart(pos);
-                }
+    dragNode() {
+        this.style.zIndex = "1";
+        document.addEventListener("mouseup", this.boundStopDragNode);
+        document.addEventListener("mousemove", this.boundDragMove);
+    }
+    dragMove(p) {
+        this.oldPos = this.oldPos || p; //Short circuit evaluation to assign oldPos to p in case of no previous value
+        let deltaX = this.oldPos.x - p.x;
+        let deltaY = this.oldPos.y - p.y;
+        this.oldPos = p;
+        this.setPosition(new point((this.offsetLeft - deltaX), (this.offsetTop - deltaY)));
+        this.Actions.forEach(p => {
+            if (p.Connection != null) {
+                let rect = p.getBoundingClientRect();
+                let pos = new point(rect.x + rect.width / 2, rect.y + rect.height / 2);
+                p.Curve.setStart(pos);
+            }
+        });
+        this.Inputs.forEach(p => {
+            if (p.Connection != null) {
+                let rect = p.getBoundingClientRect();
+                let pos = new point(rect.x + rect.width / 2, rect.y + rect.height / 2);
+                p.Curve.setEnd(pos);
+            }
+        });
+        this.Outputs.forEach(p => {
+            p.Connections.forEach(destPlug => {
+                let rect = p.getBoundingClientRect();
+                let pos = new point(rect.x + rect.width / 2, rect.y + rect.height / 2);
+                destPlug.Curve.setStart(pos);
             });
-            node.Inputs.forEach(p => {
-                if (p.Connection != null) {
-                    let rect = p.getBoundingClientRect();
-                    let pos = new point(rect.x + rect.width / 2, rect.y + rect.height / 2);
-                    p.Curve.setEnd(pos);
-                }
-            });
-            node.Outputs.forEach(p => {
-                p.Connections.forEach(destPlug => {
-                    let rect = p.getBoundingClientRect();
-                    let pos = new point(rect.x + rect.width / 2, rect.y + rect.height / 2);
-                    destPlug.Curve.setStart(pos);
-                });
-            });
-        }
-        function stopDragNode(e) {
-            document.removeEventListener("mouseup", stopDragNode);
-            document.removeEventListener("mousemove", dragMove);
-            node.style.zIndex = null;
-        }
+        });
+    }
+    stopDragNode() {
+        document.removeEventListener("mouseup", this.boundStopDragNode);
+        document.removeEventListener("mousemove", this.boundDragMove);
+        this.style.zIndex = null;
     }
 }
 class InPlug extends VPL_Plug {
@@ -310,10 +332,24 @@ class ActionPlug extends VPL_Plug {
     }
 }
 class ActionNode extends VPL_Node {
+    constructor(Name, Actions, Inputs, Outputs, position, id, isEvent) {
+        super(Name, Actions, Inputs, Outputs, position, id, isEvent);
+        this.Connections = [];
+        this.classList.add("actionNode");
+    }
+    dragMove(p) {
+        super.dragMove(p);
+        this.Connections.forEach(c => {
+            let rect = this.header.getBoundingClientRect();
+            let pos = new point(rect.x + rect.width / 2, rect.y + rect.height / 2);
+            c.Curve.setEnd(pos);
+        });
+    }
 }
 class GraphEditor {
     constructor(container, bg, svgContainer, graph) {
         this.nodes = [];
+        this.eventNodes = [];
         this.count = 0;
         //-This is a shitty meme, god i hate this, whoever decided tot do this, did way more than a 'little bit' of trolling
         //customElements.define('vpl-plug', VPL_Plug);
@@ -321,7 +357,11 @@ class GraphEditor {
         customElements.define('vpl-in-plug', InPlug);
         customElements.define('vpl-out-plug', OutPlug);
         customElements.define('vpl-node', VPL_Node);
-        bg.addEventListener("click", this.spawnNode.bind(this)); //Don't know how "bind" works, but it makes it so the event fucntion has the instance of GraphEditor as 'this' instead of somehting else
+        customElements.define('vpl-action-node', ActionNode);
+        bg.addEventListener("click", (e) => {
+            e.preventDefault();
+            this.spawnNode.bind(this)(new VPL_Node("TestNode" + (this.count++).toString(), [new ActionPlug("Next >>")], [new InPlug(GraphType.Num), new InPlug(GraphType.Text, "wow"), new InPlug(GraphType.Emoji), new InPlug(GraphType.Time)], [new OutPlug(GraphType.Num), new OutPlug(GraphType.Time), new OutPlug(GraphType.Text)], new point(e.pageX, e.pageY), this.count));
+        }); //Don't know how "bind" works, but it makes it so the event fucntion has the instance of GraphEditor as 'this' instead of somehting else
         this.container = container;
         this.svgContainer = svgContainer;
         window.addEventListener("resize", (e) => {
@@ -330,13 +370,39 @@ class GraphEditor {
             setSize(bg, editorSize);
             setSize(svgContainer, editorSize);
         });
+        document.addEventListener("keyup", (e) => {
+            e.preventDefault();
+            if (e.key === 'Enter') {
+                download(this.jsonTranspile(), `${this.name}.json`, 'text/json');
+            }
+        });
     }
-    spawnNode(e) {
-        ++this.count;
-        e.preventDefault();
-        let myGraphEditorNode = new VPL_Node("TestNode" + this.count.toString(), [new ActionPlug("Next >>")], [new InPlug(GraphType.Num), new InPlug(GraphType.Text, "wow"), new InPlug(GraphType.Emoji), new InPlug(GraphType.Time)], [new OutPlug(GraphType.Num), new OutPlug(GraphType.Time), new OutPlug(GraphType.Text)], new point(e.pageX, e.pageY));
-        this.container.appendChild(myGraphEditorNode);
-        this.nodes.push(myGraphEditorNode);
+    spawnNode(n) {
+        this.container.appendChild(n);
+        this.nodes.push(n);
+    }
+    jsonTranspile() {
+        let res = '{ "nodes": [ ';
+        this.eventNodes.forEach((n) => {
+            `{
+                "id": ${n.ID},
+                "name": "${n.Name}",
+                "type": "${n.VPL_Node_Type()}",
+                "inputs":  { 
+                    "data": [
+                    ${n.Inputs.map((a) => `{
+                        "name": "${a.Name}",
+                        "type": "${GraphType[a.Type]}",
+                        "valueIsPath": ${!a.HasField},
+                        "value": "${a.HasField ? a.Value.toString() : `{
+                            "node": ${a.Connection.ParentNode.ID},
+                            "plug": "${a.Connection.Name}"
+                        }`}", //TODO: find a good way to do this for non strings
+                    }`)}
+                ],
+            }`;
+        });
+        return res + ' ] }';
     }
 }
 function beginConnection(e, fromPlug) {
@@ -443,6 +509,7 @@ function beginConnection(e, fromPlug) {
             target.Curve = curve;
             fromPlug.Curve = curve;
             addDots(curve);
+            target.classList.add("actionConnected");
         };
         document.addEventListener("mousemove", dragConnection);
         stopConnection = stopConnection.bind(this);
@@ -453,10 +520,10 @@ function beginConnection(e, fromPlug) {
     }
     function addDots(curve) {
         let dots = [
-            { setter: curve.setStart.bind(curve), getter: curve.getStart.bind(curve), element: makeSVGElement("circle", { "fill": "orange", "r": 5, "pointer-events": "all" }) },
-            { setter: curve.setStartControl.bind(curve), getter: curve.getC1.bind(curve), element: makeSVGElement("circle", { "fill": "yellow", "r": 5, "pointer-events": "all" }) },
-            { setter: curve.setEndControl.bind(curve), getter: curve.getC2.bind(curve), element: makeSVGElement("circle", { "fill": "blue", "r": 5, "pointer-events": "all" }) },
-            { setter: curve.setEnd.bind(curve), getter: curve.getEnd.bind(curve), element: makeSVGElement("circle", { "fill": "purple", "r": 5, "pointer-events": "all" }) }
+            { setter: curve.setStart.bind(curve), getter: curve.getStart.bind(curve), element: makeSVGElement("circle", { "fill": "yellow", "r": 5, "pointer-events": "all" }) },
+            { setter: curve.setStartControl.bind(curve), getter: curve.getC1.bind(curve), element: makeSVGElement("circle", { "fill": "orange", "r": 5, "pointer-events": "all" }) },
+            { setter: curve.setEndControl.bind(curve), getter: curve.getC2.bind(curve), element: makeSVGElement("circle", { "fill": "purple", "r": 5, "pointer-events": "all" }) },
+            { setter: curve.setEnd.bind(curve), getter: curve.getEnd.bind(curve), element: makeSVGElement("circle", { "fill": "blue", "r": 5, "pointer-events": "all" }) }
         ];
         curve.addEvent("updateshit", (curve) => {
             dots.forEach(dot => {

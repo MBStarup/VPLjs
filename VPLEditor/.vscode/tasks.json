@@ -16,7 +16,7 @@
                 "command": ".vscode\\comp.bat"
             },
             "linux": {
-                "command": "tsc -taget es6 ${workplaceFolder}/src/*.ts -outFile main.js"
+                "command": "tsc -target es6 ${workspaceFolder}/src/*.ts -outFile main.js"
             }
         }
     ]

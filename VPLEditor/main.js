@@ -312,7 +312,7 @@ class InPlug extends VPL_Plug {
     constructor(type, Name, HasField) {
         super();
         this.Connection = null;
-        this.Name = Name !== null && Name !== void 0 ? Name : GraphType[this.Type];
+        this.Name = Name !== null && Name !== void 0 ? Name : GraphType[type];
         this.Type = type;
         this.HasField = HasField !== null && HasField !== void 0 ? HasField : false;
     }
@@ -321,7 +321,7 @@ class OutPlug extends VPL_Plug {
     constructor(type, Name) {
         super();
         this.Connections = [];
-        this.Name = Name !== null && Name !== void 0 ? Name : GraphType[this.Type];
+        this.Name = Name !== null && Name !== void 0 ? Name : GraphType[type];
         this.Type = type;
     }
 }

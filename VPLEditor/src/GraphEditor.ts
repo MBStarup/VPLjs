@@ -204,7 +204,7 @@ class InPlug extends VPL_Plug {
 
     constructor(type: GraphType, Name?: string, HasField?: boolean) {
         super();
-        this.Name = Name ?? GraphType[this.Type]
+        this.Name = Name ?? GraphType[type]
         this.Type = type
         this.HasField = HasField ?? false
     }
@@ -216,7 +216,7 @@ class OutPlug extends VPL_Plug {
 
     constructor(type: GraphType, Name?: string) {
         super();
-        this.Name = Name ?? GraphType[this.Type]
+        this.Name = Name ?? GraphType[type]
         this.Type = type
     }
 }

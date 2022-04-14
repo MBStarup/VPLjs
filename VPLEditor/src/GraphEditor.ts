@@ -334,7 +334,7 @@ class GraphEditor {
                     {
                         "name": "${a.Name}",
                         "type": "${GraphType[a.Type]}",
-                        "valueIsPath": ${!a.HasField},
+                        "valueIsPath": ${a.Connection !== null},
                         "value": ${a.Connection === null ? (a.HasField ? a.Value.toString() : "null") : `
                         {
                             "node": ${a.Connection.ParentNode.ID},
@@ -346,8 +346,8 @@ class GraphEditor {
                     ${n.Actions.map((a) => `
                     {
                         "name": "${a.Name}",
-                        "type": "action",
-                        "valueIsPath": true,
+                        "type": "Action",
+                        "valueIsPath": ${a.Connection !== null},
                         "value": ${a.Connection === null ? "null" : `
                         {
                             "node": ${a.Connection.ID},

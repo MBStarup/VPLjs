@@ -1,9 +1,9 @@
 //! NOTE: THIS REQUIRES NODE CERSION 17.0.0 OR HIGHER
 //! NOTE: THIS IS AN EXPERIMENTAL FEATURE, AND MIGHT NOT WORK IN THE FURTURE
-import graph from './json/smallExample2.json' assert {type: "json"}
+import graph from './json/test1.json' assert {type: "json"}
 import fs from 'fs'
 
-fs.writeFile('./result/smallExample2.js', buildFile(), 'utf8', err => {
+fs.writeFile('./result/test1.js', buildFile(), 'utf8', err => {
     if (err) console.log(err)
     else {
         console.log('success')
@@ -12,10 +12,10 @@ fs.writeFile('./result/smallExample2.js', buildFile(), 'utf8', err => {
 
 function setType(string, type) {
     switch (type) {
-        case 'text': {
+        case 'Text': {
             return `'${string}'` // return as string
         }
-        case 'number': {
+        case 'Num': {
             return string // return as number
         }
     }

@@ -16,7 +16,7 @@
 
 .node {
     pointer-events: all;
-    width: 250px;
+    min-width: 250px;
     position: absolute;
 }
 
@@ -36,7 +36,7 @@
     color: #F8F8F2;
     border-top-left-radius: 1.5em;
     border-top-right-radius: 1.5em;
-    height: 3rem;
+    min-height: 3rem;
 
     display: flex;
     align-items: center;
@@ -82,6 +82,19 @@
     font-weight: 600;
 }
 
+.input > input {
+    background-color:#282A36;
+    border: 0px;
+    border-radius: 1em;
+    color: #F8F8F2;
+    max-width: 100%;
+}
+
+.input > input::placeholder {
+    color:#44475A;
+  }
+  
+
 .output > .typeDot {
     margin-right: -0.2rem;
     margin-left: 0.5rem;
@@ -96,8 +109,8 @@
     cursor: alias;
     border-radius: 50%;
     pointer-events: all;
-    width: 1.3rem;
-    height: 1.3rem;
+    min-width: 1.3rem;
+    min-height: 1.3rem;
 }
 
 

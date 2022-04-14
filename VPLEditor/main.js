@@ -233,14 +233,22 @@ class VPL_Node extends HTMLElement {
         Inputs === null || Inputs === void 0 ? void 0 : Inputs.forEach(input => {
             input.ParentNode = this;
             let inputDiv = document.createElement("div");
-            let text = document.createElement("p");
             input.classList.add("typeDot", GraphType[input.Type]);
-            text.innerHTML = input.Name;
             inputDiv.appendChild(input);
-            inputDiv.appendChild(text);
             input.addEventListener("mousedown", (e) => beginConnection(e, input));
             inputListDiv.appendChild(inputDiv);
             inputDiv.classList.add("input");
+            if (input.HasField) {
+                let inputField = document.createElement("input");
+                inputField.addEventListener("change", (e) => { input.Value = inputField.value; }); //TODO: implement an actual input parsing function, maybe even do drop downs as opposed to text fields for some types?
+                inputField.placeholder = input.Name;
+                inputDiv.appendChild(inputField);
+            }
+            else {
+                let text = document.createElement("p");
+                text.innerHTML = input.Name;
+                inputDiv.appendChild(text);
+            }
         });
         Outputs === null || Outputs === void 0 ? void 0 : Outputs.forEach(output => {
             output.ParentNode = this;
@@ -328,6 +336,7 @@ class OutPlug extends VPL_Plug {
 class ActionPlug extends VPL_Plug {
     constructor(Name) {
         super();
+        this.Connection = null;
         this.Name = Name !== null && Name !== void 0 ? Name : "ACTION";
     }
 }
@@ -380,29 +389,68 @@ class GraphEditor {
     spawnNode(n) {
         this.container.appendChild(n);
         this.nodes.push(n);
+        if (n.IsEvent) {
+            this.eventNodes.push(n);
+        }
     }
     jsonTranspile() {
-        let res = '{ "nodes": [ ';
-        this.eventNodes.forEach((n) => {
-            `{
-                "id": ${n.ID},
-                "name": "${n.Name}",
-                "type": "${n.VPL_Node_Type()}",
-                "inputs":  { 
-                    "data": [
-                    ${n.Inputs.map((a) => `{
+        let todoStack = [...this.eventNodes];
+        let doneStack = [];
+        while (todoStack.length > 0) {
+            let curr = todoStack.pop();
+            curr.Actions.forEach((a) => a.Connection ? (doneStack.indexOf(a.Connection) == -1 ? todoStack.push(a.Connection) : "") : "");
+            curr.Inputs.forEach((a) => a.Connection ? (doneStack.indexOf(a.Connection.ParentNode) == -1 ? todoStack.push(a.Connection.ParentNode) : "") : "");
+            doneStack.push(curr);
+        }
+        return `
+{ 
+    "nodes": [ 
+        ${doneStack.map((n) => `{
+            "id": ${n.ID},
+            "name": "${n.Name}",
+            "type": "${n.VPL_Node_Type()}",
+            "inputs":  
+            { 
+                "data": [ 
+                    ${n.Inputs.map((a) => `
+                    {
                         "name": "${a.Name}",
                         "type": "${GraphType[a.Type]}",
                         "valueIsPath": ${!a.HasField},
-                        "value": "${a.HasField ? a.Value.toString() : `{
+                        "value": ${a.Connection === null ? (a.HasField ? a.Value.toString() : "null") : `
+                        {
                             "node": ${a.Connection.ParentNode.ID},
                             "plug": "${a.Connection.Name}"
-                        }`}", //TODO: find a good way to do this for non strings
-                    }`)}
+                        }`}
+                    }`).reduce((prev, curr, i) => `${prev}${','.repeat((i > 0))} ${curr}`, "")}
                 ],
-            }`;
-        });
-        return res + ' ] }';
+                "actions": [ 
+                    ${n.Actions.map((a) => `
+                    {
+                        "name": "${a.Name}",
+                        "type": "action",
+                        "valueIsPath": true,
+                        "value": ${a.Connection === null ? "null" : `
+                        {
+                            "node": ${a.Connection.ID},
+                            "plug": "${a.Connection.Name}"
+                        }`}
+                    }`).reduce((prev, curr, i) => `${prev}${','.repeat((i > 0))} ${curr}`, "")}
+                ]
+            },
+            "outputs":  
+            { 
+                "data": [ 
+                    ${n.Outputs.map((a) => `
+                    {
+                        "name": "${a.Name}",
+                        "type": "${GraphType[a.Type]}"
+                    }`).reduce((prev, curr, i) => `${prev}${','.repeat((i > 0))} ${curr}`, "")}
+                ]
+            }
+        }`).reduce((prev, curr, i) => `${prev}${','.repeat((i > 0))} ${curr}`, "")}
+    ]
+}`;
     }
 }
 function beginConnection(e, fromPlug) {
